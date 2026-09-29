@@ -1,0 +1,159 @@
+﻿import Link from "next/link";
+import StoreHeader from "@/components/layout/StoreHeader";
+import SiteFooter from "@/components/site/SiteFooter";
+
+export default function CancellationPolicyPage() {
+  return (
+    <main className="min-h-screen bg-[#f7f3ea] text-[#242321]">
+      <StoreHeader />
+
+      <section className="border-b border-[#ded6c8] bg-[#fffdf8] px-4 py-14 sm:px-6 sm:py-18">
+        <div className="mx-auto max-w-4xl">
+          <p className="text-[10px] font-semibold uppercase tracking-[0.3em] text-[#92713d]">
+            Customer Information
+          </p>
+
+          <h1 className="mt-3 font-serif text-4xl font-bold sm:text-5xl">
+            Cancellation Policy
+          </h1>
+
+          <p className="mt-5 max-w-2xl text-sm leading-7 text-[#625e57]">
+            Please review this policy before requesting cancellation of an
+            order.
+          </p>
+        </div>
+      </section>
+
+      <section className="mx-auto max-w-4xl px-4 py-12 sm:px-6 sm:py-16">
+        <div className="space-y-10">
+
+          <section>
+            <h2 className="font-serif text-2xl font-bold">
+              Requesting a Cancellation
+            </h2>
+
+            <div className="mt-4 space-y-4 text-sm leading-7 text-[#625e57]">
+              <p>
+                If you need to cancel an order, please contact us as soon as
+                possible and provide your order number.
+              </p>
+
+              <p>
+                We will review the order status and determine whether
+                cancellation is still possible.
+              </p>
+
+              <p>
+                A cancellation request does not automatically guarantee that
+                an order can be cancelled.
+              </p>
+            </div>
+          </section>
+
+          <section>
+            <h2 className="font-serif text-2xl font-bold">
+              Orders That Have Not Been Processed
+            </h2>
+
+            <p className="mt-4 text-sm leading-7 text-[#625e57]">
+              If an order has not yet entered preparation or production, we
+              will make reasonable efforts to accommodate a cancellation
+              request.
+            </p>
+          </section>
+
+          <section className="border border-[#c9bea9] bg-[#14120f] p-6 sm:p-8">
+            <p className="text-[10px] font-semibold uppercase tracking-[0.25em] text-[#92713d]">
+              Custom Orders
+            </p>
+
+            <h2 className="mt-3 font-serif text-2xl font-bold">
+              Custom-Size & Made-to-Measure Products
+            </h2>
+
+            <div className="mt-4 space-y-4 text-sm leading-7 text-[#625e57]">
+              <p>
+                Custom-size and made-to-measure products may enter preparation
+                or production specifically for the customer shortly after the
+                order is confirmed.
+              </p>
+
+              <p>
+                Once preparation or production has started, cancellation may
+                no longer be possible or may be subject to additional
+                conditions.
+              </p>
+
+              <p>
+                If you have ordered a custom product and need to request a
+                cancellation, contact us immediately so we can check the
+                current production status.
+              </p>
+            </div>
+          </section>
+
+          <section>
+            <h2 className="font-serif text-2xl font-bold">
+              Orders Already Shipped
+            </h2>
+
+            <p className="mt-4 text-sm leading-7 text-[#625e57]">
+              Orders that have already been shipped generally cannot be
+              cancelled through the normal cancellation process. Depending on
+              the circumstances, the order may instead be subject to the
+              applicable return policy.
+            </p>
+          </section>
+
+          <section>
+            <h2 className="font-serif text-2xl font-bold">
+              Approved Cancellations & Refunds
+            </h2>
+
+            <div className="mt-4 space-y-4 text-sm leading-7 text-[#625e57]">
+              <p>
+                If a cancellation is approved and a refund is applicable, the
+                refund will normally be processed through the original payment
+                method where possible.
+              </p>
+
+              <p>
+                The time required for the refund to appear may depend on the
+                payment provider or financial institution.
+              </p>
+            </div>
+          </section>
+
+          <section>
+            <h2 className="font-serif text-2xl font-bold">
+              How to Request Cancellation
+            </h2>
+
+            <p className="mt-4 text-sm leading-7 text-[#625e57]">
+              Send us your order number and cancellation request as soon as
+              possible. Please do not wait until the order has been shipped.
+            </p>
+
+            <a
+              href="mailto:support@medievalarmors.com?subject=Order%20Cancellation%20Request"
+              className="mt-5 inline-flex bg-[#a78345] px-6 py-3 text-[10px] font-bold uppercase tracking-[0.18em] text-[#ffffff] transition hover:bg-[#8f6d39]"
+            >
+              Request Cancellation
+            </a>
+          </section>
+
+        </div>
+      </section>
+
+      <footer className="border-t border-[#ded6c8] px-4 py-8 text-center text-xs text-[#777064]">
+        <p>Medieval Armors</p>
+
+        <p className="mt-2">
+          Historical-inspired armor and handcrafted reproductions.
+        </p>
+      </footer>
+          <SiteFooter />
+    </main>
+  );
+}
+

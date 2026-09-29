@@ -1,0 +1,451 @@
+    });
+
+    alert("Added to cart!");
+  }
+
+  return (
+    <main className="min-h-screen bg-[#0c0b09] text-[#eee8dc]">
+      {/* Header */}
+
+      <header className="border-b border-[#332d24] bg-[#0c0b09]">
+        <div className="mx-auto flex max-w-7xl items-center justify-between px-6 py-5">
+          <a
+            href="/"
+            className="font-serif text-2xl font-bold tracking-[0.12em] text-[#d6b875]"
+          >
+            MEDIEVAL ARMORS
+          </a>
+
+          <nav className="hidden gap-8 text-sm uppercase tracking-[0.15em] md:flex">
+            <a
+              href="/"
+              className="hover:text-[#d6b875]"
+            >
+              Shop
+            </a>
+
+            <a
+              href="/#featured"
+              className="hover:text-[#d6b875]"
+            >
+              Featured
+            </a>
+
+            <a
+              href="/#custom"
+              className="hover:text-[#d6b875]"
+            >
+              Custom Armor
+            </a>
+          </nav>
+
+          <a
+            href="/cart"
+            className="text-sm uppercase tracking-[0.15em] hover:text-[#d6b875]"
+          >
+            Cart
+          </a>
+        </div>
+      </header>
+
+      {/* Product */}
+
+      <section className="mx-auto max-w-7xl px-6 py-14 lg:py-20">
+        <div className="grid gap-12 lg:grid-cols-2 lg:gap-20">
+          {/* IMAGE GALLERY */}
+
+<div>
+  <ProductImageCarousel
+    images={product.images}
+    productName={product.name}
+    category={product.category}
+  />
+</div>
+{/* PRODUCT INFORMATION */}
+
+          <div className="lg:pt-4">
+            <p className="text-xs uppercase tracking-[0.35em] text-[#b49458]">
+              {product.category}
+            </p>
+
+            <h1 className="mt-4 font-serif text-4xl font-bold leading-tight sm:text-5xl">
+              {product.name}
+            </h1>
+
+            {/* Price */}
+
+            <div className="mt-6 text-3xl font-semibold text-[#c7a65e]">
+              ${price.toFixed(2)}
+            </div>
+
+            <div className="my-8 h-px bg-[#332d24]" />
+
+            <p className="text-base leading-8 text-[#aaa194]">
+              {product.description}
+            </p>
+
+           {/* Armor Variant */}
+
+<div className="mt-9">
+  <div className="mb-3 flex items-center justify-between">
+    <span className="text-sm font-semibold uppercase tracking-[0.15em]">
+      Choose Armor Set
+    </span>
+
+    <span className="text-xs uppercase tracking-[0.12em] text-[#777064]">
+      Required
+    </span>
+  </div>
+
+  <div className="grid gap-3 sm:grid-cols-2">
+    {product.variants.map((variant) => {
+      const available =
+        variant.stock > 0;
+
+      const selected =
+        selectedVariantId ===
+        variant.id;
+
+      return (
+        <button
+          key={variant.id}
+          type="button"
+          disabled={!available}
+          onClick={() =>
+            handleVariantChange(
+              variant.id
+            )
+          }
+          className={`border p-5 text-left transition ${
+            selected
+              ? "border-[#c7a65e] bg-[#c7a65e] text-[#17130d]"
+              : "border-[#514838] bg-[#12100d] hover:border-[#c7a65e]"
+          } ${
+            !available
+              ? "cursor-not-allowed opacity-40"
+              : ""
+          }`}
+        >
+          <div className="flex items-start justify-between gap-4">
+            <div>
+              <p className="font-semibold">
+                {variant.name}
+              </p>
+
+              {variant.size && (
+                <p
+                  className={`mt-1 text-xs ${
+                    selected
+                      ? "text-[#4a4031]"
+                      : "text-[#777064]"
+                  }`}
+                >
+                  {variant.size}
+                </p>
+              )}
+            </div>
+
+            <span
+              className={`font-semibold ${
+                selected
+                  ? "text-[#17130d]"
+                  : "text-[#c7a65e]"
+              }`}
+            >
+              $
+              {Number(
+                variant.price
+              ).toFixed(2)}
+            </span>
+          </div>
+
+          <p
+            className={`mt-2 text-[10px] font-bold uppercase tracking-[0.12em] ${
+              selected
+                ? "text-[#4a4031]"
+                : available
+                ? "text-[#777064]"
+                : "text-[#d79b8d]"
+            }`}
+          >
+            {available
+              ? "Available"
+              : "Out of stock"}
+          </p>
+        </button>
+      );
+    })}
+  </div>
+</div>
+
+                {/* Gauge */}
+
+        <div className="mt-8">
+          <div className="mb-3 flex items-center justify-between">
+            <span className="text-sm font-semibold uppercase tracking-[0.15em]">
+              Gauge
+            </span>
+
+            <span className="text-sm text-[#8f877b]">
+              18 Gauge
+            </span>
+          </div>
+
+          <div className="border border-[#c7a65e] bg-[#c7a65e] px-5 py-3 text-sm text-[#17130d]">
+            18 Gauge ÃƒÂ¢Ã¢â€šÂ¬Ã¢â‚¬Â Included
+          </div>
+
+          <p className="mt-3 text-xs text-[#777064]">
+            Standard armor thickness.
+          </p>
+        </div>
+        {/* Size */}
+
+        {selectedVariant?.customAvailable && (
+          <div className="mt-8">
+            <span className="mb-3 block text-sm font-semibold uppercase tracking-[0.15em]">
+              Sizing
+            </span>
+
+            <div className="grid grid-cols-2 gap-3">
+              <button
+                type="button"
+                onClick={() =>
+                  handleCustomSizeChange(
+                    false
+                  )
+                }
+                className={`border px-5 py-4 text-sm transition ${
+                  !customSize
+                    ? "border-[#c7a65e] bg-[#c7a65e] text-[#17130d]"
+                    : "border-[#514838] hover:border-[#c7a65e]"
+                }`}
+              >
+                Standard Size
+              </button>
+
+              <button
+                type="button"
+                onClick={() =>
+                  handleCustomSizeChange(
+                    true
+                  )
+                }
+                className={`border px-5 py-4 text-sm transition ${
+                  customSize
+                    ? "border-[#c7a65e] bg-[#c7a65e] text-[#17130d]"
+                    : "border-[#514838] hover:border-[#c7a65e]"
+                }`}
+              >
+                Custom Size
+              </button>
+            </div>
+          </div>
+        )}
+
+        {/* Selected Variant */}
+
+        <div className="mt-8 border border-[#3d3529] bg-[#12100d] p-5">
+          <div className="grid grid-cols-2 gap-5 text-sm">
+            <div>
+              <span className="text-xs uppercase tracking-[0.12em] text-[#777064]">
+                Selected Variant
+              </span>
+
+              <p className="mt-1 font-semibold">
+                {selectedVariant?.name ??
+                  "Unavailable"}
+              </p>
+            </div>
+
+            <div>
+              <span className="text-xs uppercase tracking-[0.12em] text-[#777064]">
+                Price
+              </span>
+
+              <p className="mt-1 font-semibold text-[#c7a65e]">
+                $
+                {price.toFixed(2)}
+              </p>
+            </div>
+
+            <div>
+              <span className="text-xs uppercase tracking-[0.12em] text-[#777064]">
+                Gauge
+              </span>
+
+              <p className="mt-1">
+                18 Gauge
+              </p>
+            </div>
+
+            <div>
+              <span className="text-xs uppercase tracking-[0.12em] text-[#777064]">
+                Stock
+              </span>
+
+              <p
+                className={`mt-1 ${
+                  stock > 0
+                    ? "text-[#c7a65e]"
+                    : "text-[#d79b8d]"
+                }`}
+              >
+                {stock > 0
+                  ? `${stock} available`
+                  : "Out of stock"}
+              </p>
+            </div>
+          </div>
+        </div>
+
+            {/* Custom Measurements */}
+
+            {customSize && (
+              <div className="mt-7 border border-[#3d3529] bg-[#12100d] p-6">
+                <div className="mb-6">
+                  <h2 className="font-serif text-2xl font-bold">
+                    Custom Measurements
+                  </h2>
+
+                  <p className="mt-2 text-sm leading-6 text-[#8f877b]">
+                    Enter your measurements
+                    in centimeters.
+                  </p>
+                </div>
+
+                <div className="grid grid-cols-2 gap-4">
+                  {measurements.map(
+                    ([field, label]) => (
+                      <label
+                        key={field}
+                        className="block"
+                      >
+                        <span className="mb-2 block text-xs uppercase tracking-[0.12em] text-[#a79d8e]">
+                          {label}
+                        </span>
+
+                        <input
+                          type="number"
+                          min="0"
+                          step="0.1"
+                          value={
+                            measurementValues[
+                              field
+                            ] ?? ""
+                          }
+                          onChange={(event) =>
+                            updateMeasurement(
+                              field,
+                              event.target
+                                .value
+                            )
+                          }
+                          className="w-full border border-[#4a4031] bg-[#0c0b09] px-4 py-3 text-[#eee8dc] outline-none transition focus:border-[#c7a65e]"
+                        />
+                      </label>
+                    )
+                  )}
+                </div>
+
+                <textarea
+                  placeholder="Additional measurement notes..."
+                  value={
+                    measurementValues.notes ??
+                    ""
+                  }
+                  onChange={(event) =>
+                    updateMeasurement(
+                      "notes",
+                      event.target.value
+                    )
+                  }
+                  className="mt-5 min-h-28 w-full border border-[#4a4031] bg-[#0c0b09] px-4 py-3 text-sm text-[#eee8dc] outline-none focus:border-[#c7a65e]"
+                />
+              </div>
+            )}
+
+            {/* Quantity */}
+
+            <div className="mt-9">
+              <span className="mb-3 block text-sm font-semibold uppercase tracking-[0.15em]">
+                Quantity
+              </span>
+
+              <div className="flex w-fit items-center border border-[#514838]">
+                <button
+                  type="button"
+                  onClick={
+                    decreaseQuantity
+                  }
+                  className="px-5 py-3 text-lg hover:bg-[#1d1914]"
+                >
+                  ÃƒÂ¢Ã‹â€ Ã¢â‚¬â„¢
+                </button>
+
+                <span className="min-w-14 text-center">
+                  {quantity}
+                </span>
+
+                <button
+                  type="button"
+                  onClick={
+                    increaseQuantity
+                  }
+                  disabled={
+                    !selectedVariant ||
+                    quantity >= stock
+                  }
+                  className="px-5 py-3 text-lg hover:bg-[#1d1914] disabled:cursor-not-allowed disabled:opacity-30"
+                >
+                  +
+                </button>
+              </div>
+
+              <p className="mt-3 text-xs text-[#777064]">
+                {stock > 0
+                  ? `${stock} available`
+                  : "Currently unavailable"}
+              </p>
+            </div>
+
+            {/* Add To Cart */}
+
+            <button
+              type="button"
+              disabled={
+                !selectedVariant ||
+                stock <= 0
+              }
+              onClick={
+                handleAddToCart
+              }
+              className="mt-9 w-full bg-[#c7a65e] px-8 py-5 text-sm font-bold uppercase tracking-[0.22em] text-[#17130d] transition hover:bg-[#dfc17d] disabled:cursor-not-allowed disabled:bg-[#4a4439] disabled:text-[#81796d]"
+            >
+              {stock > 0
+                ? "Add to Cart"
+                : "Out of Stock"}
+            </button>
+
+            <div className="mt-8 grid grid-cols-2 gap-4 border-t border-[#332d24] pt-7 text-center text-xs uppercase tracking-[0.12em] text-[#8f877b]">
+              <div>
+                <span className="block text-[#c7a65e]">
+                  Handcrafted
+                </span>
+                Historical-inspired
+                workmanship
+              </div>
+
+              <div>
+                <span className="block text-[#c7a65e]">
+                  Custom Available
+                </span>
+                Selected products
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+    </main>
+  );
+}

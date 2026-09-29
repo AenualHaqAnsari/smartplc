@@ -1,0 +1,217 @@
+import type { Metadata } from "next";
+import Link from "next/link";
+import StoreHeader from "@/components/layout/StoreHeader";
+import SiteFooter from "@/components/site/SiteFooter";
+
+
+export const metadata: Metadata = {
+  title: "Shipping Policy | Industrial Automation",
+  description: "Review Industrial Automation shipping information, order preparation, delivery and tracking details before placing your order.",
+  alternates: {
+    canonical: "/shipping-policy",
+  },
+};
+export default function ShippingPolicyPage() {
+  return (
+    <main className="min-h-screen bg-[#f8fafc] text-[#17212b]">
+      <StoreHeader />
+
+      <section className="border-b border-[#e2e8f0] bg-[#ffffff] px-4 py-14 sm:px-6 sm:py-18">
+        <div className="mx-auto max-w-4xl">
+          <p className="text-[10px] font-semibold uppercase tracking-[0.3em] text-[#0369a1]">
+            Customer Information
+          </p>
+
+          <h1 className="mt-3 font-serif text-4xl font-bold sm:text-5xl">
+            Shipping Policy
+          </h1>
+
+          <p className="mt-5 max-w-2xl text-sm leading-7 text-[#475569]">
+            We carefully prepare every order for shipment and provide
+            customers with available delivery and tracking information.
+          </p>
+        </div>
+      </section>
+
+      <section className="mx-auto max-w-4xl px-4 py-12 sm:px-6 sm:py-16">
+        <div className="space-y-10">
+
+          <section>
+            <h2 className="font-serif text-2xl font-bold">
+              Order Processing
+            </h2>
+
+            <div className="mt-4 space-y-4 text-sm leading-7 text-[#475569]">
+              <p>
+                Orders are prepared after payment has been received and the
+                order details have been confirmed.
+              </p>
+
+              <p>
+                Because many of our products are handcrafted or require
+                preparation before shipment, processing times can vary
+                depending on the product and order requirements.
+              </p>
+
+              <p>
+                Custom-size orders may require additional preparation time.
+              </p>
+            </div>
+          </section>
+
+          <section>
+            <h2 className="font-serif text-2xl font-bold">
+              International Shipping
+            </h2>
+
+            <div className="mt-4 space-y-4 text-sm leading-7 text-[#475569]">
+              <p>
+                We offer shipping to customers in different countries.
+                Available shipping methods and costs may depend on the
+                destination, package size and shipping service available for
+                the order.
+              </p>
+
+              <p>
+                Shipping charges shown during checkout are based on the
+                shipping option available for the order.
+              </p>
+            </div>
+          </section>
+
+          <section>
+            <h2 className="font-serif text-2xl font-bold">
+              Tracking Your Order
+            </h2>
+
+            <div className="mt-4 space-y-4 text-sm leading-7 text-[#475569]">
+              <p>
+                When tracking information is available, it will be added to
+                your order and may be viewed from your customer account.
+              </p>
+
+              <p>
+                Tracking information may take some time to appear after a
+                shipment has been handed to the carrier.
+              </p>
+
+              <p>
+                Carrier tracking updates are provided by the shipping carrier
+                and may occasionally be delayed.
+              </p>
+            </div>
+          </section>
+
+          <section>
+            <h2 className="font-serif text-2xl font-bold">
+              Delivery Estimates
+            </h2>
+
+            <div className="mt-4 space-y-4 text-sm leading-7 text-[#475569]">
+              <p>
+                Delivery times are estimates and can vary based on the
+                destination, shipping method, customs processing and carrier
+                conditions.
+              </p>
+
+              <p>
+                Delivery estimates do not include any additional time that
+                may be required for customs clearance or other governmental
+                procedures.
+              </p>
+            </div>
+          </section>
+
+          <section>
+            <h2 className="font-serif text-2xl font-bold">
+              Customs, Duties and Taxes
+            </h2>
+
+            <div className="mt-4 space-y-4 text-sm leading-7 text-[#475569]">
+              <p>
+                International shipments may be subject to customs duties,
+                import taxes, VAT, brokerage charges or other fees imposed by
+                the destination country.
+              </p>
+
+              <p>
+                Unless specifically stated during checkout, these charges are
+                not included in the product price or shipping charge paid to
+                us.
+              </p>
+
+              <p>
+                Any applicable customs duties, taxes or import charges are the
+                responsibility of the recipient.
+              </p>
+            </div>
+          </section>
+
+          <section>
+            <h2 className="font-serif text-2xl font-bold">
+              Incorrect or Incomplete Address
+            </h2>
+
+            <div className="mt-4 space-y-4 text-sm leading-7 text-[#475569]">
+              <p>
+                Customers are responsible for providing a complete and
+                accurate delivery address during checkout.
+              </p>
+
+              <p>
+                If you notice an address error after placing an order, please
+                contact us as soon as possible. We will try to assist before
+                the order is shipped.
+              </p>
+            </div>
+          </section>
+
+          <section>
+            <h2 className="font-serif text-2xl font-bold">
+              Delayed or Lost Shipments
+            </h2>
+
+            <div className="mt-4 space-y-4 text-sm leading-7 text-[#475569]">
+              <p>
+                Shipping delays can occur because of carrier delays, customs
+                processing, weather, transportation interruptions or other
+                circumstances outside our control.
+              </p>
+
+              <p>
+                If your shipment appears to be delayed or there is an issue
+                with tracking, please contact us with your order number so we
+                can review the available shipment information.
+              </p>
+            </div>
+          </section>
+
+          <section>
+            <h2 className="font-serif text-2xl font-bold">
+              Questions About Shipping
+            </h2>
+
+            <p className="mt-4 text-sm leading-7 text-[#475569]">
+              If you have questions about shipping before placing an order,
+              please contact our customer support team.
+            </p>
+
+            <a
+              href="/request-quote?subject=Shipping%20Question"
+              className="mt-5 inline-flex bg-[#0877b9] px-6 py-3 text-[10px] font-bold uppercase tracking-[0.18em] text-[#17130d] transition hover:bg-[#dfc17d]"
+            >
+              Contact Support
+            </a>
+          </section>
+
+        </div>
+      </section>
+
+      <SiteFooter />
+          <SiteFooter />
+    </main>
+  );
+}
+
+
+

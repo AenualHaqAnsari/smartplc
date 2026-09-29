@@ -1,0 +1,186 @@
+﻿import Link from "next/link";
+import { prisma } from "@/lib/prisma";
+import StoreHeader from "@/components/layout/StoreHeader";
+import SiteFooter from "@/components/site/SiteFooter";
+
+type Props = {
+  params: Promise<{
+    orderNumber: string;
+  }>;
+};
+
+export default async function OrderConfirmation({
+  params,
+}: Props) {
+  const { orderNumber } = await params;
+
+  const order = await prisma.order.findUnique({
+    where: {
+      orderNumber,
+    },
+    include: {
+  items: {
+    include: {
+      variant: true,
+    },
+  },
+  payments: {
+    orderBy: {
+      createdAt: "desc",
+    },
+    take: 1,
+  },
+},
+  });
+
+  if (!order) {
+    return (
+      <main className="flex min-h-screen items-center justify-center bg-[#0c0b09] px-6 text-center text-[#242321]">
+        <div>
+          <h1 className="font-serif text-4xl font-bold">
+            ORDER NOT FOUND
+          </h1>
+
+          <Link
+            href="/"
+            className="mt-8 inline-block bg-[#a78345] px-8 py-4 text-sm font-bold uppercase tracking-[0.2em] text-[#ffffff]"
+          >
+            Return to Store
+          </Link>
+        </div>
+      </main>
+    );
+  }
+
+  return (
+    <main className="min-h-screen bg-[#f7f3ea] text-[#242321]">
+      <header className="border-b border-[#ded6c8]">
+        <div className="mx-auto max-w-7xl px-6 py-5">
+          <Link
+            href="/"
+            className="font-serif text-2xl font-bold tracking-[0.12em] text-[#8f6d39]"
+          >
+            MEDIEVAL ARMORS
+          </Link>
+        </div>
+      </header>
+
+      <section className="mx-auto max-w-3xl px-6 py-20 text-center">
+        <div className="mx-auto flex h-20 w-20 items-center justify-center border border-[#bda477] text-3xl text-[#a78345]">
+          âœ“
+        </div>
+
+        <p className="mt-8 text-xs uppercase tracking-[0.35em] text-[#92713d]">
+          Order received
+        </p>
+
+        <h1 className="mt-3 font-serif text-5xl font-bold">
+          THANK YOU
+        </h1>
+
+        <p className="mx-auto mt-6 max-w-xl leading-8 text-[#625e57]">
+  Your order has been successfully recorded.
+  Your payment status is shown below.
+</p>
+
+        <div className="mt-10 border border-[#c9bea9] bg-[#fffdf8] p-7 text-left">
+          <div className="flex justify-between border-b border-[#ded6c8] pb-5">
+            <span className="text-sm text-[#6b665e]">
+              Order Number
+            </span>
+
+            <strong className="text-[#a78345]">
+              {order.orderNumber}
+            </strong>
+          </div>
+
+          <div className="mt-5 space-y-4">
+            {order.items.map((item) => (
+              <div
+                key={item.id}
+                className="flex justify-between gap-5"
+              >
+                <div>
+                  <p className="font-serif font-semibold">
+                    {item.productName}
+                  </p>
+
+                  <p className="mt-1 text-xs text-[#777064]">
+                    Quantity: {item.quantity}
+                  </p>
+                </div>
+
+                <p className="text-[#a78345]">
+                  {order.currency === "GBP" ? "£" : order.currency === "EUR" ? "€" : "$"}{Number(item.totalPrice).toFixed(2)}
+                </p>
+              </div>
+            ))}
+          </div>
+
+          <div className="mt-6 flex justify-between border-t border-[#ded6c8] pt-6">
+            <strong className="font-serif text-xl">
+              Total
+            </strong>
+
+            <strong className="text-2xl text-[#a78345]">
+              {order.currency === "GBP" ? "£" : order.currency === "EUR" ? "€" : "$"}{Number(order.total).toFixed(2)}
+            </strong>
+          </div>
+        </div>
+        <div className="mt-5 flex justify-between border-b border-[#ded6c8] pb-5">
+  <span className="text-sm text-[#6b665e]">
+    Payment Status
+  </span>
+
+  <strong
+    className={
+      order.paymentStatus === "PAID"
+        ? "text-[#a78345]"
+        : "text-[#d79b8d]"
+    }
+  >
+    {order.paymentStatus}
+  </strong>
+</div>
+<div className="mt-5 flex justify-between border-b border-[#ded6c8] pb-5">
+  <span className="text-sm text-[#6b665e]">
+    Order Status
+  </span>
+
+  <strong className="text-[#a78345]">
+    {order.status}
+  </strong>
+</div>
+{order.payments[0]?.transactionId && (
+  <div className="mt-5 flex justify-between gap-5 border-b border-[#ded6c8] pb-5">
+    <span className="text-sm text-[#6b665e]">
+      Payment ID
+    </span>
+
+    <strong className="break-all text-right text-sm text-[#a78345]">
+      {order.payments[0].transactionId}
+    </strong>
+  </div>
+)}
+
+        <div className="mt-8 flex flex-col justify-center gap-4 sm:flex-row">
+          <Link
+            href="/"
+            className="border border-[#c9bea9] px-8 py-4 text-sm font-bold uppercase tracking-[0.2em] hover:border-[#a78345]"
+          >
+            Continue Shopping
+          </Link>
+
+          <Link
+            href="/cart"
+            className="bg-[#a78345] px-8 py-4 text-sm font-bold uppercase tracking-[0.2em] text-[#ffffff]"
+          >
+            View Cart
+          </Link>
+        </div>
+      </section>
+          <SiteFooter />
+    </main>
+  );
+}
+

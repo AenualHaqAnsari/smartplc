@@ -1,0 +1,69 @@
+import Link from "next/link";
+
+export default function CustomArmorPage() {
+  return (
+    <main className="min-h-screen bg-[#0c0b09] text-[#eee8dc]">
+      <header className="border-b border-[#332d24]">
+        <div className="mx-auto flex max-w-7xl items-center justify-between px-6 py-5">
+          <Link
+            href="/"
+            className="font-serif text-2xl font-bold tracking-[0.12em] text-[#d6b875]"
+          >
+            MEDIEVAL ARMORS
+          </Link>
+
+          <Link
+            href="/products"
+            className="text-sm uppercase tracking-[0.15em] text-[#c7a65e]"
+          >
+            Shop
+          </Link>
+        </div>
+      </header>
+
+      <section className="mx-auto max-w-4xl px-6 py-20">
+        <p className="text-xs uppercase tracking-[0.35em] text-[#b49458]">
+          Made for you
+        </p>
+
+        <h1 className="mt-3 font-serif text-5xl font-bold sm:text-6xl">
+          CUSTOM ARMOR
+        </h1>
+
+        <p className="mt-6 max-w-2xl text-lg leading-8 text-[#999184]">
+          Provide your measurements and we will prepare your armor
+          for a custom fit.
+        </p>
+
+        <div className="mt-12 border border-[#3a342a] bg-[#12100d] p-7">
+          <h2 className="font-serif text-2xl font-bold">
+            Custom Measurements
+          </h2>
+
+          <p className="mt-3 text-sm leading-6 text-[#777064]">
+            Custom measurements will be collected during the
+            product ordering process.
+          </p>
+
+          <div className="mt-8">
+            <Link
+              href="/products"
+              className="inline-flex bg-[#c7a65e] px-8 py-4 text-sm font-bold uppercase tracking-[0.2em] text-[#17130d] transition hover:bg-[#dfc17d]"
+            >
+              Choose Your Armor
+            </Link>
+          </div>
+        </div>
+
+        <div className="mt-8">
+          <Link
+            href="/"
+            className="text-sm uppercase tracking-[0.15em] text-[#c7a65e] hover:text-[#e1c27b]"
+          >
+            ← Back to Home
+          </Link>
+        </div>
+      </section>
+    </main>
+  );
+}

@@ -1,0 +1,676 @@
+"use client";
+
+import {
+  createContext,
+  useContext,
+  useEffect,
+  useMemo,
+  useState,
+  type ReactNode,
+} from "react";
+
+export type CartMeasurement = Record<string, string>;
+
+export type CartItem = {
+  cartItemId: string;
+  productId: string;
+  variantId?: string;
+
+  name: string;
+  variantName?: string;
+  category: string;
+  image?: string;
+
+  price: number;
+  stock?: number;
+
+  gauge?: string;
+  size?: string;
+  finish?: string;
+
+  customSize: boolean;
+  measurements?: CartMeasurement;
+
+  quantity: number;
+};
+
+type AddToCartItem = Omit<CartItem, "cartItemId">;
+
+type CartContextType = {
+  items: CartItem[];
+  addItem: (item: AddToCartItem) => void;
+  removeItem: (cartItemId: string) => void;
+  updateQuantity: (
+    cartItemId: string,
+    quantity: number
+  ) => void;
+  clearCart: () => void;
+  totalItems: number;
+  subtotal: number;
+  loading: boolean;
+  loggedIn: boolean;
+};
+
+const CartContext =
+  createContext<CartContextType | undefined>(
+    undefined
+  );
+
+type ApiCartItem = {
+  id: string;
+  productId: string;
+  variantId: string;
+  quantity: number;
+  customSize: boolean;
+  measurements: unknown;
+
+  product?: {
+    id: string;
+    name: string;
+    category?: {
+      name?: string;
+    } | null;
+    images?: {
+      url: string;
+      altText?: string | null;
+      isPrimary?: boolean;
+      sortOrder?: number;
+    }[];
+  };
+
+  variant?: {
+    id: string;
+    name: string;
+    price: string | number;
+    stock: number;
+    size: string | null;
+    gauge: string | null;
+    finish: string | null;
+  };
+};
+
+function mapApiCartItem(
+  item: ApiCartItem
+): CartItem {
+  const product = item.product;
+  const variant = item.variant;
+
+  const images = product?.images ?? [];
+
+  const primaryImage =
+    images.find(
+      (image) => image.isPrimary
+    ) ??
+    [...images].sort(
+      (a, b) =>
+        (a.sortOrder ?? 0) -
+        (b.sortOrder ?? 0)
+    )[0];
+
+  let measurements:
+    | CartMeasurement
+    | undefined;
+
+  if (
+    item.measurements &&
+    typeof item.measurements === "object" &&
+    !Array.isArray(item.measurements)
+  ) {
+    measurements =
+      item.measurements as CartMeasurement;
+  }
+
+  return {
+    cartItemId: item.id,
+
+    productId: item.productId,
+
+    variantId: item.variantId,
+
+    name:
+      product?.name ??
+      "Product",
+
+    variantName:
+      variant?.name ??
+      undefined,
+
+    category:
+      product?.category?.name ??
+      "",
+
+    image:
+      primaryImage?.url ??
+      undefined,
+
+    price: Number(
+      variant?.price ?? 0
+    ),
+
+    stock:
+      variant?.stock ??
+      undefined,
+
+    gauge:
+      variant?.gauge ??
+      undefined,
+
+    size:
+      variant?.size ??
+      undefined,
+
+    finish:
+      variant?.finish ??
+      undefined,
+
+    customSize:
+      Boolean(item.customSize),
+
+    measurements,
+
+    quantity: Number(
+      item.quantity
+    ),
+  };
+}
+
+function redirectToLogin() {
+  const currentPath =
+    window.location.pathname +
+    window.location.search;
+
+  window.location.href =
+    `/account/login?redirect=${encodeURIComponent(
+      currentPath
+    )}`;
+}
+
+export function CartProvider({
+  children,
+}: {
+  children: ReactNode;
+}) {
+  const [items, setItems] =
+    useState<CartItem[]>([]);
+
+  const [loading, setLoading] =
+    useState(true);
+
+  const [loggedIn, setLoggedIn] =
+    useState(true);
+
+  /*
+   * Load the customer's database cart.
+   *
+   * The API identifies the customer from
+   * the secure customer_token cookie.
+   */
+  useEffect(() => {
+    let cancelled = false;
+
+    async function loadCart() {
+      try {
+        setLoading(true);
+
+        const response =
+          await fetch("/api/cart", {
+            method: "GET",
+            credentials: "include",
+            cache: "no-store",
+          });
+
+        const data =
+          await response.json();
+
+        if (cancelled) {
+          return;
+        }
+
+        if (response.status === 401) {
+          setLoggedIn(false);
+          setItems([]);
+          return;
+        }
+
+        if (!response.ok) {
+          throw new Error(
+            data.error ||
+              "Unable to load cart."
+          );
+        }
+
+        setLoggedIn(true);
+
+        const apiItems =
+          Array.isArray(
+            data.cart?.items
+          )
+            ? data.cart.items
+            : [];
+
+        setItems(
+          apiItems.map(
+            (item: ApiCartItem) =>
+              mapApiCartItem(item)
+          )
+        );
+      } catch (error) {
+        if (cancelled) {
+          return;
+        }
+
+        console.error(
+          "Failed to load customer cart:",
+          error
+        );
+
+        setItems([]);
+      } finally {
+        if (!cancelled) {
+          setLoading(false);
+        }
+      }
+    }
+
+    loadCart();
+
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  /*
+   * Add item to the customer's database cart.
+   */
+  function addItem(
+    item: AddToCartItem
+  ) {
+    if (!loggedIn) {
+      alert(
+        "Please log in to add products to your cart."
+      );
+
+      redirectToLogin();
+
+      return;
+    }
+
+    if (!item.variantId) {
+      alert(
+        "Please select a product variant."
+      );
+
+      return;
+    }
+
+    void (async () => {
+      try {
+        const response =
+          await fetch("/api/cart", {
+            method: "POST",
+            headers: {
+              "Content-Type":
+                "application/json",
+            },
+            credentials: "include",
+            body: JSON.stringify({
+              productId:
+                item.productId,
+
+              variantId:
+                item.variantId,
+
+              quantity:
+                item.quantity,
+
+              customSize:
+                item.customSize,
+
+              measurements:
+                item.customSize
+                  ? item.measurements
+                  : undefined,
+            }),
+          });
+
+        const data =
+          await response.json();
+
+        if (response.status === 401) {
+          setLoggedIn(false);
+          setItems([]);
+
+          alert(
+            "Please log in to add products to your cart."
+          );
+
+          redirectToLogin();
+
+          return;
+        }
+
+        if (!response.ok) {
+          throw new Error(
+            data.error ||
+              "Unable to add item to cart."
+          );
+        }
+
+        /*
+         * The API returns the real database
+         * cart item. Replace/add it locally
+         * so the UI updates immediately.
+         */
+        if (data.item) {
+          const mappedItem =
+            mapApiCartItem(
+              data.item
+            );
+
+          setItems(
+            (currentItems) => {
+              const existing =
+                currentItems.find(
+                  (currentItem) =>
+                    currentItem.cartItemId ===
+                    mappedItem.cartItemId
+                );
+
+              if (existing) {
+                return currentItems.map(
+                  (currentItem) =>
+                    currentItem.cartItemId ===
+                    mappedItem.cartItemId
+                      ? mappedItem
+                      : currentItem
+                );
+              }
+
+              return [
+                ...currentItems,
+                mappedItem,
+              ];
+            }
+          );
+        }
+
+        setLoggedIn(true);
+
+        alert("Added to cart!");
+      } catch (error) {
+        console.error(
+          "Failed to add item to cart:",
+          error
+        );
+
+        alert(
+          error instanceof Error
+            ? error.message
+            : "Unable to add item to cart."
+        );
+      }
+    })();
+  }
+
+  /*
+   * Remove item from the customer's
+   * database cart.
+   */
+  function removeItem(
+    cartItemId: string
+  ) {
+    if (!loggedIn) {
+      redirectToLogin();
+      return;
+    }
+
+    void (async () => {
+      try {
+        const response =
+          await fetch("/api/cart", {
+            method: "DELETE",
+            headers: {
+              "Content-Type":
+                "application/json",
+            },
+            credentials: "include",
+            body: JSON.stringify({
+              cartItemId,
+            }),
+          });
+
+        const data =
+          await response.json();
+
+        if (response.status === 401) {
+          setLoggedIn(false);
+          setItems([]);
+          redirectToLogin();
+          return;
+        }
+
+        if (!response.ok) {
+          throw new Error(
+            data.error ||
+              "Unable to remove cart item."
+          );
+        }
+
+        setItems(
+          (currentItems) =>
+            currentItems.filter(
+              (item) =>
+                item.cartItemId !==
+                cartItemId
+            )
+        );
+      } catch (error) {
+        console.error(
+          "Failed to remove cart item:",
+          error
+        );
+
+        alert(
+          error instanceof Error
+            ? error.message
+            : "Unable to remove cart item."
+        );
+      }
+    })();
+  }
+
+  /*
+   * Update quantity in the customer's
+   * database cart.
+   */
+  function updateQuantity(
+    cartItemId: string,
+    quantity: number
+  ) {
+    if (quantity <= 0) {
+      removeItem(cartItemId);
+      return;
+    }
+
+    if (!loggedIn) {
+      redirectToLogin();
+      return;
+    }
+
+    void (async () => {
+      try {
+        const response =
+          await fetch("/api/cart", {
+            method: "PATCH",
+            headers: {
+              "Content-Type":
+                "application/json",
+            },
+            credentials: "include",
+            body: JSON.stringify({
+              cartItemId,
+              quantity,
+            }),
+          });
+
+        const data =
+          await response.json();
+
+        if (response.status === 401) {
+          setLoggedIn(false);
+          setItems([]);
+          redirectToLogin();
+          return;
+        }
+
+        if (!response.ok) {
+          throw new Error(
+            data.error ||
+              "Unable to update cart."
+          );
+        }
+
+        if (data.item) {
+          const mappedItem =
+            mapApiCartItem(
+              data.item
+            );
+
+          setItems(
+            (currentItems) =>
+              currentItems.map(
+                (item) =>
+                  item.cartItemId ===
+                  cartItemId
+                    ? mappedItem
+                    : item
+              )
+          );
+        }
+      } catch (error) {
+        console.error(
+          "Failed to update cart:",
+          error
+        );
+
+        alert(
+          error instanceof Error
+            ? error.message
+            : "Unable to update cart."
+        );
+      }
+    })();
+  }
+
+  /*
+   * Clear the customer's database cart.
+   */
+  function clearCart() {
+    if (!loggedIn) {
+      redirectToLogin();
+      return;
+    }
+
+    void (async () => {
+      try {
+        const response =
+          await fetch("/api/cart", {
+            method: "DELETE",
+            headers: {
+              "Content-Type":
+                "application/json",
+            },
+            credentials: "include",
+            body: JSON.stringify({
+              clear: true,
+            }),
+          });
+
+        const data =
+          await response.json();
+
+        if (response.status === 401) {
+          setLoggedIn(false);
+          setItems([]);
+          redirectToLogin();
+          return;
+        }
+
+        if (!response.ok) {
+          throw new Error(
+            data.error ||
+              "Unable to clear cart."
+          );
+        }
+
+        setItems([]);
+      } catch (error) {
+        console.error(
+          "Failed to clear cart:",
+          error
+        );
+
+        alert(
+          error instanceof Error
+            ? error.message
+            : "Unable to clear cart."
+        );
+      }
+    })();
+  }
+
+  const totalItems =
+    useMemo(
+      () =>
+        items.reduce(
+          (total, item) =>
+            total + item.quantity,
+          0
+        ),
+      [items]
+    );
+
+  const subtotal =
+    useMemo(
+      () =>
+        items.reduce(
+          (total, item) =>
+            total +
+            item.price *
+              item.quantity,
+          0
+        ),
+      [items]
+    );
+
+  return (
+    <CartContext.Provider
+      value={{
+        items,
+        addItem,
+        removeItem,
+        updateQuantity,
+        clearCart,
+        totalItems,
+        subtotal,
+        loading,
+        loggedIn,
+      }}
+    >
+      {children}
+    </CartContext.Provider>
+  );
+}
+
+export function useCart() {
+  const context =
+    useContext(CartContext);
+
+  if (!context) {
+    throw new Error(
+      "useCart must be used inside CartProvider"
+    );
+  }
+
+  return context;
+}

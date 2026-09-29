@@ -1,0 +1,995 @@
+import crypto from "crypto";
+import Razorpay from "razorpay";
+import { prisma } from "@/lib/prisma";
+import { getCustomerId } from "@/lib/customer-auth";
+import { sendOrderConfirmationEmail } from "@/lib/email";
+
+type CustomerData = {
+  firstName: string;
+  lastName: string;
+  email: string;
+  phone: string;
+  address1: string;
+  address2?: string;
+  city: string;
+  state: string;
+  postalCode: string;
+  country: string;
+};
+
+export async function POST(request: Request) {
+  try {
+    const keyId = process.env.RAZORPAY_KEY_ID;
+    const secret = process.env.RAZORPAY_KEY_SECRET;
+    if (!keyId || !secret) {
+      return Response.json(
+        { error: "Razorpay is not configured. Please contact the store." },
+        { status: 503 }
+      );
+    }
+    const razorpay = new Razorpay({ key_id: keyId, key_secret: secret });
+    /*
+     * The authenticated customer is the owner
+     * of this order. Never trust customerId
+     * or customer email from the browser.
+     */
+    const customerId = await getCustomerId();
+
+    if (!customerId) {
+      return Response.json(
+        {
+          error:
+            "Please log in before checkout.",
+        },
+        { status: 401 }
+      );
+    }
+
+    const body = await request.json();
+
+    const {
+      customer,
+      razorpayOrderId,
+      razorpayPaymentId,
+      razorpaySignature,
+    }: {
+      customer: CustomerData;
+      razorpayOrderId: string;
+      razorpayPaymentId: string;
+      razorpaySignature: string;
+    } = body;
+
+    if (!customer) {
+      return Response.json(
+        {
+          error: "Customer information is required.",
+        },
+        { status: 400 }
+      );
+    }
+
+    if (
+      !razorpayOrderId ||
+      !razorpayPaymentId ||
+      !razorpaySignature
+    ) {
+      return Response.json(
+        {
+          error: "Missing payment information.",
+        },
+        { status: 400 }
+      );
+    }
+
+    const requiredCustomerFields = [
+      "firstName",
+      "lastName",
+      "email",
+      "phone",
+      "address1",
+      "city",
+      "state",
+      "postalCode",
+      "country",
+    ] as const;
+
+    for (const field of requiredCustomerFields) {
+      if (!customer[field]) {
+        return Response.json(
+          {
+            error:
+              "Please complete all required customer and shipping fields.",
+          },
+          { status: 400 }
+        );
+      }
+    }
+
+    /*
+     * Verify Razorpay signature.
+     */
+    const expectedSignature =
+      crypto
+        .createHmac("sha256", secret)
+        .update(
+          `${razorpayOrderId}|${razorpayPaymentId}`
+        )
+        .digest("hex");
+
+    const expected = Buffer.from(expectedSignature, "hex");
+    const received = Buffer.from(razorpaySignature, "hex");
+    if (expected.length !== received.length || !crypto.timingSafeEqual(expected, received)) {
+      return Response.json(
+        {
+          error: "Invalid payment signature.",
+        },
+        { status: 400 }
+      );
+    }
+
+    /*
+     * Prevent duplicate processing of the
+     * same Razorpay payment.
+     */
+    const existingPayment =
+      await prisma.payment.findFirst({
+        where: {
+          transactionId:
+            razorpayPaymentId,
+        },
+        include: {
+          order: true,
+        },
+      });
+
+    if (existingPayment) {
+      return Response.json({
+        success: true,
+        alreadyProcessed: true,
+        orderNumber:
+          existingPayment.order.orderNumber,
+        orderId:
+          existingPayment.order.id,
+      });
+    }
+
+    /*
+     * Load the authenticated customer's
+     * database cart.
+     *
+     * The browser "items" array is deliberately
+     * NOT used here.
+     */
+    const cart =
+      await prisma.cart.findUnique({
+        where: {
+          customerId,
+        },
+        include: {
+          items: {
+            include: {
+              product: true,
+              variant: true,
+            },
+            orderBy: {
+              createdAt: "asc",
+            },
+          },
+        },
+      });
+
+    if (
+      !cart ||
+      cart.items.length === 0
+    ) {
+      return Response.json(
+        {
+          error: "Your cart is empty.",
+        },
+        { status: 400 }
+      );
+    }
+
+    /*
+     * Load the authenticated customer.
+     *
+     * This guarantees that the Order.customerId
+     * belongs to the customer represented by the
+     * secure customer_token cookie.
+     */
+    const dbCustomer =
+      await prisma.customer.findUnique({
+        where: {
+          id: customerId,
+        },
+      });
+
+    if (!dbCustomer) {
+      return Response.json(
+        {
+          error:
+            "Customer account could not be found.",
+        },
+        { status: 401 }
+      );
+    }
+
+    /*
+     * Verify the Razorpay order itself.
+     */
+    const razorpayOrder =
+      await razorpay.orders.fetch(
+        razorpayOrderId
+      );
+
+    if (!razorpayOrder) {
+      return Response.json(
+        {
+          error:
+            "Razorpay order could not be found.",
+        },
+        { status: 400 }
+      );
+    }
+
+    if (razorpayOrder.currency !== "INR") {
+      return Response.json(
+        {
+          error:
+            "Razorpay order currency does not match.",
+        },
+        { status: 400 }
+      );
+    }
+
+    const razorpayPayment = await razorpay.payments.fetch(razorpayPaymentId);
+    if (
+      razorpayPayment.order_id !== razorpayOrderId ||
+      razorpayPayment.status !== "captured" ||
+      Number(razorpayPayment.amount) !== Number(razorpayOrder.amount) ||
+      razorpayPayment.currency !== razorpayOrder.currency
+    ) {
+      return Response.json(
+        { error: "Razorpay payment is not captured or does not match this order." },
+        { status: 400 }
+      );
+    }
+
+    /*
+     * Everything below happens inside one
+     * database transaction.
+     */
+    const orderNumber = `MA-${Date.now()}-${Math.floor(
+      Math.random() * 1000
+    )}`;
+
+    const order =
+      await prisma.$transaction(
+        async (tx) => {
+          let subtotal = 0;
+
+          const orderItems =
+            cart.items.map((cartItem) => {
+              const variant =
+                cartItem.variant;
+
+              if (!variant) {
+                throw new Error(
+                  "One or more cart items are invalid."
+                );
+              }
+
+              if (
+                variant.productId !==
+                cartItem.productId
+              ) {
+                throw new Error(
+                  "One or more cart items are invalid."
+                );
+              }
+
+              const quantity =
+                Number(cartItem.quantity);
+
+              if (
+                !Number.isInteger(
+                  quantity
+                ) ||
+                quantity < 1
+              ) {
+                throw new Error(
+                  "Invalid cart quantity."
+                );
+              }
+
+              /*
+               * Check current stock.
+               */
+              if (
+                variant.stock <
+                quantity
+              ) {
+                throw new Error(
+                  `${cartItem.product.name} does not have enough stock.`
+                );
+              }
+
+              const unitPrice =
+                Number(variant.price);
+
+              const totalPrice =
+                unitPrice * quantity;
+
+              subtotal +=
+                totalPrice;
+
+              return {
+                productId:
+                  variant.productId,
+
+                productName:
+                  cartItem.product.name,
+
+                variantId:
+                  variant.id,
+
+                quantity,
+
+                unitPrice,
+
+                totalPrice,
+
+                customSize:
+                  Boolean(
+                    cartItem.customSize
+                  ),
+
+                measurements:
+                  cartItem.customSize
+                    ? (
+                        cartItem.measurements as
+                          | Record<
+                              string,
+                              string
+                            >
+                          | null
+                          | undefined
+                      ) ?? {}
+                    : null,
+              };
+            });
+
+          if (
+            !Number.isFinite(
+              subtotal
+            ) ||
+            subtotal <= 0
+          ) {
+            throw new Error(
+              "Invalid order total."
+            );
+          }
+
+          /*
+           * Load current tax settings.
+           */
+          const settings =
+            await tx.storeSetting.findMany({
+              where: {
+                key: {
+                  in: [
+                    "india_tax_rate",
+                    "international_tax_rate",
+                    "discount_india",
+                    "discount_united_kingdom",
+                    "discount_germany",
+                    "discount_france",
+                    "discount_italy",
+                    "discount_belgium",
+                    "discount_spain",
+                    "discount_switzerland",
+                    "discount_united_states",
+                    "discount_everywhere",
+                  ],
+                },
+              },
+            });
+
+          const settingMap = new Map(
+            settings.map((setting) => [
+              setting.key,
+              setting.value,
+            ])
+          );
+
+          const indiaTaxRate =
+            Number(
+              settingMap.get(
+                "india_tax_rate"
+              ) ?? "17"
+            );
+
+          const internationalTaxRate =
+            Number(
+              settingMap.get(
+                "international_tax_rate"
+              ) ?? "0"
+            );
+
+          if (
+            !Number.isFinite(indiaTaxRate) ||
+            indiaTaxRate < 0 ||
+            indiaTaxRate > 100
+          ) {
+            throw new Error(
+              "Invalid India tax configuration."
+            );
+          }
+
+          if (
+            !Number.isFinite(
+              internationalTaxRate
+            ) ||
+            internationalTaxRate < 0 ||
+            internationalTaxRate > 100
+          ) {
+            throw new Error(
+              "Invalid international tax configuration."
+            );
+          }
+
+          const country =
+            String(
+              dbCustomer.country || ""
+            )
+              .trim()
+              .toUpperCase();
+
+          if (!country) {
+            throw new Error(
+              "Customer country is not configured."
+            );
+          }
+
+          const isIndia =
+            country === "INDIA" ||
+            country === "IN";
+
+          const taxRate =
+            isIndia
+              ? indiaTaxRate
+              : internationalTaxRate;
+
+          const discountIndia =
+            Number(
+              settingMap.get(
+                "discount_india"
+              ) ?? "0"
+            );
+
+          const discountUnitedKingdom =
+            Number(
+              settingMap.get(
+                "discount_united_kingdom"
+              ) ?? "0"
+            );
+
+          const discountGermany =
+            Number(
+              settingMap.get(
+                "discount_germany"
+              ) ?? "0"
+            );
+
+          const discountFrance =
+            Number(
+              settingMap.get(
+                "discount_france"
+              ) ?? "0"
+            );
+
+          const discountItaly =
+            Number(
+              settingMap.get(
+                "discount_italy"
+              ) ?? "0"
+            );
+
+          const discountBelgium =
+            Number(
+              settingMap.get(
+                "discount_belgium"
+              ) ?? "0"
+            );
+
+          const discountSpain =
+            Number(
+              settingMap.get(
+                "discount_spain"
+              ) ?? "0"
+            );
+
+          const discountSwitzerland =
+            Number(
+              settingMap.get(
+                "discount_switzerland"
+              ) ?? "0"
+            );
+
+          const discountUnitedStates =
+            Number(
+              settingMap.get(
+                "discount_united_states"
+              ) ?? "0"
+            );
+
+          const discountEverywhere =
+            Number(
+              settingMap.get(
+                "discount_everywhere"
+              ) ?? "0"
+            );
+
+          const discountMap: Record<
+            string,
+            number
+          > = {
+            "UNITED KINGDOM":
+              discountUnitedKingdom,
+
+            "UK":
+              discountUnitedKingdom,
+
+            "GERMANY":
+              discountGermany,
+
+            "FRANCE":
+              discountFrance,
+
+            "ITALY":
+              discountItaly,
+
+            "BELGIUM":
+              discountBelgium,
+
+            "SPAIN":
+              discountSpain,
+
+            "SWITZERLAND":
+              discountSwitzerland,
+
+            "UNITED STATES":
+              discountUnitedStates,
+
+            "US":
+              discountUnitedStates,
+
+            "USA":
+              discountUnitedStates,
+          };
+
+          const discountRate =
+            isIndia
+              ? discountIndia
+              : (
+                  discountMap[
+                    country
+                  ] ??
+                  discountEverywhere
+                );
+
+          if (
+            !Number.isFinite(
+              discountRate
+            ) ||
+            discountRate < 0 ||
+            discountRate > 100
+          ) {
+            throw new Error(
+              "Invalid country discount configuration."
+            );
+          }
+
+          const discount =
+            subtotal *
+            (discountRate / 100);
+
+          const discountedSubtotal =
+            subtotal - discount;
+
+          const shippingCost = 0;
+
+          const tax =
+            (
+              discountedSubtotal +
+              shippingCost
+            ) *
+            (taxRate / 100);
+
+          const total =
+            discountedSubtotal +
+            shippingCost +
+            tax;
+          const exchangeRate = Number(razorpayOrder.notes?.usdToInrRate);
+          if (!Number.isFinite(exchangeRate) || exchangeRate <= 0) {
+            throw new Error("Razorpay order is missing its exchange rate.");
+          }
+          const expectedAmount = Math.round(total * exchangeRate * 100);
+
+          /*
+           * The amount paid must match the
+           * server-calculated database-cart total.
+           */
+          if (
+            Number(
+              razorpayOrder.amount
+            ) !== expectedAmount
+          ) {
+            throw new Error(
+              "Razorpay payment amount does not match the order total."
+            );
+          }
+
+          /*
+           * Save shipping address against the
+           * authenticated customer.
+           */
+          const address =
+            await tx.address.create({
+              data: {
+                firstName:
+                  customer.firstName,
+
+                lastName:
+                  customer.lastName,
+
+                address1:
+                  customer.address1,
+
+                address2:
+                  customer.address2 ||
+                  null,
+
+                city:
+                  customer.city,
+
+                state:
+                  customer.state,
+
+                postalCode:
+                  customer.postalCode,
+
+                country:
+                  customer.country,
+
+                phone:
+                  customer.phone,
+
+                customerId:
+                  dbCustomer.id,
+              },
+            });
+
+          /*
+           * Create the order using the
+           * authenticated customer's ID.
+           */
+          const createdOrder =
+            await tx.order.create({
+              data: {
+                orderNumber,
+
+                customerId:
+                  dbCustomer.id,
+
+                shippingAddressId:
+                  address.id,
+
+                subtotal,
+
+                shippingCost,
+
+                discount,
+
+                tax,
+
+                total,
+
+                currency: "INR",
+
+                status: "CONFIRMED",
+
+                paymentStatus: "PAID",
+
+                items: {
+                  create:
+                    orderItems.map(
+                      (item) => ({
+                        productId:
+                          item.productId,
+
+                        productName:
+                          item.productName,
+
+                        variantId:
+                          item.variantId,
+
+                        quantity:
+                          item.quantity,
+
+                        unitPrice:
+                          item.unitPrice,
+
+                        totalPrice:
+                          item.totalPrice,
+
+                        customSize:
+                          item.customSize,
+                      })
+                    ),
+                },
+
+                payments: {
+                  create: {
+                    provider:
+                      "RAZORPAY",
+
+                    transactionId:
+                      razorpayPaymentId,
+
+                    amount: expectedAmount / 100,
+
+                    currency: "INR",
+
+                    status: "PAID",
+
+                    rawResponse: {
+                      razorpayOrderId,
+                      razorpayPaymentId,
+                      razorpaySignature,
+                    },
+                  },
+                },
+              },
+
+              include: {
+                items: true,
+              },
+            });
+
+          /*
+           * Save custom measurements.
+           */
+          for (const item of orderItems) {
+            if (
+              !item.customSize ||
+              !item.measurements
+            ) {
+              continue;
+            }
+
+            const measurements =
+              item.measurements;
+
+            await tx.customMeasurement.create({
+              data: {
+                orderId:
+                  createdOrder.id,
+
+                itemName:
+                  item.productName,
+
+                height:
+                  measurements.height
+                    ? Number(
+                        measurements.height
+                      )
+                    : null,
+
+                chest:
+                  measurements.chest
+                    ? Number(
+                        measurements.chest
+                      )
+                    : null,
+
+                waist:
+                  measurements.waist
+                    ? Number(
+                        measurements.waist
+                      )
+                    : null,
+
+                hip:
+                  measurements.hip
+                    ? Number(
+                        measurements.hip
+                      )
+                    : null,
+
+                shoulder:
+                  measurements.shoulder
+                    ? Number(
+                        measurements.shoulder
+                      )
+                    : null,
+
+                armLength:
+                  measurements.armLength
+                    ? Number(
+                        measurements.armLength
+                      )
+                    : null,
+
+                bicep:
+                  measurements.bicep
+                    ? Number(
+                        measurements.bicep
+                      )
+                    : null,
+
+                wrist:
+                  measurements.wrist
+                    ? Number(
+                        measurements.wrist
+                      )
+                    : null,
+
+                thigh:
+                  measurements.thigh
+                    ? Number(
+                        measurements.thigh
+                      )
+                    : null,
+
+                knee:
+                  measurements.knee
+                    ? Number(
+                        measurements.knee
+                      )
+                    : null,
+
+                calf:
+                  measurements.calf
+                    ? Number(
+                        measurements.calf
+                      )
+                    : null,
+
+                ankle:
+                  measurements.ankle
+                    ? Number(
+                        measurements.ankle
+                      )
+                    : null,
+
+                neck:
+                  measurements.neck
+                    ? Number(
+                        measurements.neck
+                      )
+                    : null,
+
+                head:
+                  measurements.head
+                    ? Number(
+                        measurements.head
+                      )
+                    : null,
+
+                unit: "cm",
+
+                notes: null,
+              },
+            });
+          }
+
+          /*
+           * Deduct stock exactly once.
+           */
+          for (const item of orderItems) {
+            const stockUpdate =
+              await tx.productVariant.updateMany({
+                where: {
+                  id: item.variantId,
+
+                  stock: {
+                    gte: item.quantity,
+                  },
+                },
+
+                data: {
+                  stock: {
+                    decrement:
+                      item.quantity,
+                  },
+                },
+              });
+
+            if (
+              stockUpdate.count !== 1
+            ) {
+              throw new Error(
+                `${item.productName} does not have enough stock.`
+              );
+            }
+          }
+
+          /*
+           * Clear ONLY this authenticated
+           * customer's cart after the order
+           * has been successfully created.
+           */
+          await tx.cartItem.deleteMany({
+            where: {
+              cartId: cart.id,
+            },
+          });
+
+          return createdOrder;
+        }
+      );
+
+    /*
+     * Send confirmation email after the
+     * database transaction succeeds.
+     */
+    try {
+      await sendOrderConfirmationEmail({
+        customerName: `${customer.firstName} ${customer.lastName}`,
+
+        customerEmail:
+          customer.email,
+
+        orderNumber:
+          order.orderNumber,
+
+        items: order.items.map(
+          (item) => ({
+            productName:
+              item.productName,
+
+            quantity:
+              item.quantity,
+
+            totalPrice:
+              item.totalPrice.toString(),
+          })
+        ),
+
+        total:
+          order.total.toString(),
+      });
+    } catch (emailError) {
+      console.error(
+        "ORDER CONFIRMATION EMAIL ERROR:",
+        emailError
+      );
+    }
+
+    return Response.json({
+      success: true,
+
+      orderNumber:
+        order.orderNumber,
+
+      orderId:
+        order.id,
+    });
+  } catch (error) {
+    console.error(
+      "RAZORPAY COMPLETE ORDER ERROR:",
+      error
+    );
+
+    return Response.json(
+      {
+        error:
+          error instanceof Error
+            ? error.message
+            : "Unable to complete order.",
+      },
+      { status: 500 }
+    );
+  }
+}

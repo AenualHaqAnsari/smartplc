@@ -1,0 +1,209 @@
+"use client";
+
+import Link from "next/link";
+import { useState } from "react";
+
+export default function LoginPage() {
+  const [email, setEmail] =
+    useState("");
+
+  const [password, setPassword] =
+    useState("");
+
+  const [loading, setLoading] =
+    useState(false);
+
+  const [error, setError] =
+    useState("");
+
+  async function handleSubmit(
+    event: React.FormEvent
+  ) {
+    event.preventDefault();
+
+    setError("");
+    setLoading(true);
+
+    try {
+      const response = await fetch(
+        "/api/account/login",
+        {
+          method: "POST",
+          headers: {
+            "Content-Type":
+              "application/json",
+          },
+          credentials: "include",
+          body: JSON.stringify({
+            email,
+            password,
+          }),
+        }
+      );
+
+      const data =
+        await response.json();
+
+      if (!response.ok) {
+        throw new Error(
+          data.error ||
+            "Unable to sign in."
+        );
+      }
+
+      /*
+       * Return the customer to the page
+       * they originally wanted to access.
+       *
+       * Example:
+       *
+       * /account/login?redirect=/cart
+       *
+       * After login:
+       *
+       * /cart
+       */
+      const params =
+        new URLSearchParams(
+          window.location.search
+        );
+
+      const requestedRedirect =
+        params.get("redirect");
+
+      /*
+       * Only allow internal redirects.
+       * This prevents an external URL from
+       * being supplied as the redirect.
+       */
+      const destination =
+        requestedRedirect &&
+        requestedRedirect.startsWith("/") &&
+        !requestedRedirect.startsWith("//")
+          ? requestedRedirect
+          : "/account";
+
+      /*
+       * Full page navigation ensures the
+       * newly-created customer cookie is
+       * available everywhere and the
+       * CartProvider starts again with the
+       * authenticated customer.
+       */
+      window.location.href =
+        destination;
+    } catch (error) {
+      setError(
+        error instanceof Error
+          ? error.message
+          : "Unable to sign in."
+      );
+
+      setLoading(false);
+    }
+  }
+
+  return (
+    <main className="min-h-screen bg-[#0c0b09] text-[#eee8dc]">
+      <header className="border-b border-[#332d24]">
+        <div className="mx-auto flex max-w-7xl items-center justify-between px-6 py-5">
+          <Link
+            href="/"
+            className="font-serif text-2xl font-bold tracking-[0.12em] text-[#d6b875]"
+          >
+            MEDIEVAL ARMORS
+          </Link>
+
+          <Link
+            href="/products"
+            className="text-sm uppercase tracking-[0.15em] text-[#c7a65e]"
+          >
+            Shop
+          </Link>
+        </div>
+      </header>
+
+      <section className="mx-auto max-w-lg px-6 py-20">
+        <p className="text-xs uppercase tracking-[0.35em] text-[#b49458]">
+          Customer Account
+        </p>
+
+        <h1 className="mt-3 font-serif text-5xl font-bold">
+          SIGN IN
+        </h1>
+
+        <p className="mt-5 text-[#8f877b]">
+          Sign in to view your orders and
+          manage your account.
+        </p>
+
+        <form
+          onSubmit={handleSubmit}
+          className="mt-10 space-y-5 border border-[#3a342a] bg-[#12100d] p-7"
+        >
+          <label className="block">
+            <span className="text-xs uppercase tracking-[0.15em] text-[#8f877b]">
+              Email
+            </span>
+
+            <input
+              type="email"
+              required
+              value={email}
+              onChange={(event) =>
+                setEmail(
+                  event.target.value
+                )
+              }
+              className="mt-2 min-h-12 w-full border border-[#514838] bg-[#0c0b09] px-4 text-[#eee8dc] outline-none focus:border-[#c7a65e]"
+            />
+          </label>
+
+          <label className="block">
+            <span className="text-xs uppercase tracking-[0.15em] text-[#8f877b]">
+              Password
+            </span>
+
+            <input
+              type="password"
+              required
+              value={password}
+              onChange={(event) =>
+                setPassword(
+                  event.target.value
+                )
+              }
+              className="mt-2 min-h-12 w-full border border-[#514838] bg-[#0c0b09] px-4 text-[#eee8dc] outline-none focus:border-[#c7a65e]"
+            />
+          </label>
+
+          {error && (
+            <div className="border border-[#75463e] bg-[#241411] p-4 text-sm text-[#d79b8d]">
+              {error}
+            </div>
+          )}
+
+          <button
+            type="submit"
+            disabled={loading}
+            className="w-full bg-[#c7a65e] px-8 py-4 text-sm font-bold uppercase tracking-[0.2em] text-[#17130d] transition hover:bg-[#dfc17d] disabled:cursor-not-allowed disabled:opacity-50"
+          >
+            {loading
+              ? "Signing In..."
+              : "Sign In"}
+          </button>
+
+          <p className="text-center text-sm text-[#8f877b]">
+            Don't have an account?{" "}
+            <Link
+              href="/account/register"
+              className="text-[#c7a65e] hover:text-[#dfc17d]"
+            >
+              Create Account
+            </Link>
+          </p>
+        </form>
+      </section>
+    </main>
+  );
+}

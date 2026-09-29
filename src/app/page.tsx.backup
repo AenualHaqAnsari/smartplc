@@ -1,0 +1,523 @@
+﻿import { prisma } from "@/lib/prisma";
+import Link from "next/link";
+import CartButton from "@/components/cart/CartButton";
+import CurrencySelector from "@/components/currency/CurrencySelector";
+import HeroCarousel from "@/components/home/HeroCarousel";
+import StoreHeader from "@/components/layout/StoreHeader";
+import SiteFooter from "@/components/site/SiteFooter";
+
+const categoryDefinitions = [
+  {
+    name: "Full Armor",
+    slug: "full-armor",
+    description: "Complete suits of medieval armor",
+  },
+  {
+    name: "Helmets",
+    slug: "helmets",
+    description: "Knight helmets and historical headgear",
+  },
+  {
+    name: "Shields",
+    slug: "shields",
+    description: "Medieval shields and heraldic designs",
+  },
+  {
+    name: "Gauntlets",
+    slug: "gauntlets",
+    description: "Handcrafted medieval gauntlets",
+  },
+];
+
+export default async function Home() {
+  const featuredProducts = await prisma.product.findMany({
+    where: {
+      status: "ACTIVE",
+      featured: true,
+    },
+    include: {
+      category: true,
+      images: {
+        orderBy: [
+          {
+            isPrimary: "desc",
+          },
+          {
+            sortOrder: "asc",
+          },
+        ],
+        take: 1,
+      },
+    },
+    orderBy: {
+      createdAt: "desc",
+    },
+    take: 8,
+  });
+
+  const categoryProducts = await Promise.all(
+    categoryDefinitions.map(async (category) => {
+      const product = await prisma.product.findFirst({
+        where: {
+          status: "ACTIVE",
+          category: {
+            slug: category.slug,
+          },
+        },
+        include: {
+          images: {
+            orderBy: [
+              {
+                isPrimary: "desc",
+              },
+              {
+                sortOrder: "asc",
+              },
+            ],
+            take: 1,
+          },
+        },
+        orderBy: {
+          createdAt: "desc",
+        },
+      });
+
+      return {
+        ...category,
+        image: product?.images[0]?.url ?? null,
+      };
+    })
+  );
+
+  const heroImages = featuredProducts
+    .filter((product) => product.images[0]?.url)
+    .slice(0, 4)
+    .map((product) => product.images[0].url);
+
+  const heroMessages = [
+    {
+      eyebrow: "Handcrafted Medieval Armor",
+      title: "Armor Crafted for History",
+      description:
+        "Discover medieval-inspired armor and historical reproductions made for collectors, enthusiasts and reenactors.",
+      button: "Shop Armor",
+      href: "/products",
+    },
+    {
+      eyebrow: "The Knight's Collection",
+      title: "Bring Medieval History to Life",
+      description:
+        "Explore helmets, armor, shields and handcrafted pieces inspired by the medieval world.",
+      button: "Explore Collection",
+      href: "/products",
+    },
+    {
+      eyebrow: "Made With Character",
+      title: "Details Worth Collecting",
+      description:
+        "Discover distinctive historical reproductions created with attention to craftsmanship and detail.",
+      button: "Discover More",
+      href: "/products",
+    },
+    {
+      eyebrow: "Custom Armor",
+      title: "Made Around Your Measurements",
+      description:
+        "Selected armor designs are available with custom sizing for a more personal fit.",
+      button: "View Custom Armor",
+      href: "/custom-armor",
+    },
+  ];
+
+  const heroSlides = heroImages.map((image, index) => ({
+    image,
+    ...heroMessages[index % heroMessages.length],
+  }));
+
+  return (
+    <main className="min-h-screen bg-[#f7f3ea] text-[#242321]">
+      <StoreHeader />
+
+      {/* Hero Carousel */}
+      {heroSlides.length > 0 ? (
+        <HeroCarousel slides={heroSlides} />
+      ) : (
+        <section className="px-4 py-6 sm:px-6">
+          <div className="mx-auto flex h-[300px] max-w-7xl items-center border border-[#d8d0c3] bg-[#eee8dc] px-7 sm:h-[360px] lg:h-[410px] sm:px-12">
+            <div>
+              <p className="text-xs uppercase tracking-[0.3em] text-[#a78345]">
+                Handcrafted Historical Reproductions
+              </p>
+
+              <h1 className="mt-3 max-w-2xl font-serif text-4xl font-bold sm:text-5xl">
+                Medieval Armor for Collectors & Enthusiasts
+              </h1>
+
+              <p className="mt-4 max-w-xl text-sm leading-6 text-[#625e57]">
+                Explore handcrafted armor, helmets, shields and historical
+                reproductions.
+              </p>
+
+              <Link
+                href="/products"
+                className="mt-6 inline-flex bg-[#a78345] px-6 py-3 text-xs font-bold uppercase tracking-[0.18em] text-[#ffffff]"
+              >
+                Shop Now
+              </Link>
+            </div>
+          </div>
+        </section>
+      )}
+
+
+
+      {/* UK Trust Strip */}
+      <section className="border-y border-[#ded6c8] bg-[#fffdf8]">
+        <div className="mx-auto grid max-w-7xl grid-cols-2 md:grid-cols-4">
+          <div className="border-b border-r border-[#ded6c8] px-5 py-6 text-center md:border-b-0"><div className="text-xs font-bold uppercase tracking-[0.16em] text-[#a78345]">UK Registered</div><p className="mt-2 text-xs text-[#6b665e]">MEDIEVAL STORE LTD</p></div>
+          <div className="border-b border-[#ded6c8] px-5 py-6 text-center md:border-b-0 md:border-r"><div className="text-xs font-bold uppercase tracking-[0.16em] text-[#a78345]">Secure Payments</div><p className="mt-2 text-xs text-[#6b665e]">Pay securely online</p></div>
+          <div className="border-r border-[#ded6c8] px-5 py-6 text-center"><div className="text-xs font-bold uppercase tracking-[0.16em] text-[#a78345]">Worldwide Shipping</div><p className="mt-2 text-xs text-[#6b665e]">International delivery available</p></div>
+          <div className="px-5 py-6 text-center"><div className="text-xs font-bold uppercase tracking-[0.16em] text-[#a78345]">Custom Armor</div><p className="mt-2 text-xs text-[#6b665e]">Selected designs made to measure</p></div>
+        </div>
+      </section>
+
+      {/* Category Section */}
+      <section className="border-y border-[#ded6c8] bg-[#fffdf8] py-14 sm:py-16">
+        <div className="mx-auto max-w-7xl px-4 sm:px-6">
+          <div className="flex items-end justify-between gap-5">
+            <div>
+              <p className="text-[10px] uppercase tracking-[0.3em] text-[#92713d]">
+                Explore
+              </p>
+
+              <h2 className="mt-2 font-serif text-3xl font-bold sm:text-4xl">
+                Shop by Category
+              </h2>
+            </div>
+
+            <Link
+              href="/products"
+              className="hidden text-xs uppercase tracking-[0.15em] text-[#a78345] sm:block"
+            >
+              View All Products
+            </Link>
+          </div>
+
+          <div className="mt-8 grid grid-cols-2 gap-3 sm:grid-cols-4 sm:gap-4">
+            {categoryProducts.map((category) => (
+              <Link
+                key={category.slug}
+                href={`/products?category=${category.slug}`}
+                className="group overflow-hidden border border-[#ded6c8] bg-[#ffffff]"
+              >
+                <div className="relative aspect-[1.15/1] overflow-hidden bg-[#e5ded2]">
+                  {category.image ? (
+                    <img
+                      src={category.image}
+                      alt={category.name}
+                      className="h-full w-full object-cover transition duration-500 group-hover:scale-105"
+                    />
+                  ) : (
+                    <div className="flex h-full items-center justify-center">
+                      <span className="font-serif text-sm text-[#514a40]">
+                        {category.name}
+                      </span>
+                    </div>
+                  )}
+
+                  <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/90 to-transparent p-4 pt-12">
+                    <h3 className="font-serif text-lg font-bold sm:text-xl">
+                      {category.name}
+                    </h3>
+
+                    <p className="mt-1 hidden text-xs text-[#625e57] sm:block">
+                      {category.description}
+                    </p>
+                  </div>
+                </div>
+              </Link>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* Featured Products */}
+      <section id="featured" className="py-14 sm:py-20">
+        <div className="mx-auto max-w-7xl px-4 sm:px-6">
+          <div className="flex items-end justify-between gap-5">
+            <div>
+              <p className="text-[10px] uppercase tracking-[0.3em] text-[#92713d]">
+                Our Collection
+              </p>
+
+              <h2 className="mt-2 font-serif text-3xl font-bold sm:text-4xl">
+                Featured Products
+              </h2>
+            </div>
+
+            <Link
+              href="/products"
+              className="text-xs uppercase tracking-[0.15em] text-[#a78345] transition hover:text-[#76572d]"
+            >
+              View All Products
+            </Link>
+          </div>
+
+          {featuredProducts.length > 0 ? (
+            <div className="mt-8 grid grid-cols-2 gap-x-4 gap-y-9 sm:grid-cols-3 lg:grid-cols-4 lg:gap-x-5">
+              {featuredProducts.map((product) => {
+                const image = product.images[0];
+
+                return (
+                  <Link
+                    key={product.id}
+                    href={`/products/${product.slug}`}
+                    className="group"
+                  >
+                    <div className="relative aspect-square overflow-hidden bg-[#eee9df]">
+                      {image ? (
+                        <img
+                          src={image.url}
+                          alt={
+                            image.altText ||
+                            product.name
+                          }
+                          className="h-full w-full object-cover transition duration-500 group-hover:scale-[1.03]"
+                        />
+                      ) : (
+                        <div className="flex h-full items-center justify-center">
+                          <span className="font-serif text-sm text-[#4d463b]">
+                            MEDIEVAL ARMORS
+                          </span>
+                        </div>
+                      )}
+
+                      <div className="absolute left-2 top-2 border border-[#bda477] bg-[#0c0b09]/90 px-2 py-1 text-[9px] uppercase tracking-[0.15em] text-[#a78345]">
+                        Featured
+                      </div>
+                    </div>
+
+                    <div className="pt-3">
+                      <p className="text-[9px] uppercase tracking-[0.18em] text-[#6b665e]">
+                        {product.category.name}
+                      </p>
+
+                      <h3 className="mt-1.5 line-clamp-2 font-serif text-base font-semibold leading-5 sm:text-lg">
+                        {product.name}
+                      </h3>
+
+                      <div className="mt-2 flex items-center gap-2">
+                        <p className="text-sm font-semibold text-[#a78345] sm:text-base">
+                          ${Number(product.basePrice).toFixed(2)}
+                        </p>
+
+                        {product.compareAtPrice && (
+                          <p className="text-xs text-[#6b665e] line-through">
+                            $
+                            {Number(
+                              product.compareAtPrice
+                            ).toFixed(2)}
+                          </p>
+                        )}
+                      </div>
+                    </div>
+                  </Link>
+                );
+              })}
+            </div>
+          ) : (
+            <div className="mt-8 border border-dashed border-[#d8d0c3] p-10 text-center">
+              <p className="font-serif text-xl">
+                Featured products coming soon
+              </p>
+            </div>
+          )}
+        </div>
+      </section>
+
+      {/* Trust Strip */}
+      <section className="border-y border-[#ded6c8] bg-[#fffdf8]">
+        <div className="mx-auto grid max-w-7xl grid-cols-2 divide-x divide-[#332d24] sm:grid-cols-4">
+          <div className="px-4 py-7 text-center">
+            <p className="text-xs font-semibold uppercase tracking-[0.12em]">
+              Handcrafted
+            </p>
+            <p className="mt-1 text-[11px] text-[#6b665e]">
+              Made with attention to detail
+            </p>
+          </div>
+
+          <div className="px-4 py-7 text-center">
+            <p className="text-xs font-semibold uppercase tracking-[0.12em]">
+              Custom Sizes
+            </p>
+            <p className="mt-1 text-[11px] text-[#6b665e]">
+              Selected products available
+            </p>
+          </div>
+
+          <div className="border-t border-[#ded6c8] px-4 py-7 text-center sm:border-t-0">
+            <p className="text-xs font-semibold uppercase tracking-[0.12em]">
+              Worldwide Shipping
+            </p>
+            <p className="mt-1 text-[11px] text-[#6b665e]">
+              Carefully prepared for delivery
+            </p>
+          </div>
+
+          <div className="border-t border-[#ded6c8] px-4 py-7 text-center sm:border-t-0">
+            <p className="text-xs font-semibold uppercase tracking-[0.12em]">
+              Secure Checkout
+            </p>
+            <p className="mt-1 text-[11px] text-[#6b665e]">
+              Safe and protected payments
+            </p>
+          </div>
+        </div>
+      </section>
+
+      {/* Custom Armor */}
+      <section className="py-14 sm:py-20">
+        <div className="mx-auto max-w-7xl px-4 sm:px-6">
+          <div className="grid overflow-hidden border border-[#ded6c8] bg-[#181510] md:grid-cols-2">
+            <div className="min-h-[260px] bg-[radial-gradient(circle_at_center,_rgba(120,95,52,0.22),_transparent_65%)] sm:min-h-[320px]" />
+
+            <div className="flex items-center p-7 sm:p-10 lg:p-14">
+              <div>
+                <p className="text-[10px] uppercase tracking-[0.3em] text-[#92713d]">
+                  Made for you
+                </p>
+
+                <h2 className="mt-3 font-serif text-3xl font-bold sm:text-4xl">
+                  Custom Armor
+                </h2>
+
+                <p className="mt-4 max-w-lg text-sm leading-6 text-[#625e57]">
+                  Choose selected armor designs with standard sizing or
+                  provide your measurements for a custom fit.
+                </p>
+
+                <Link
+                  href="/custom-armor"
+                  className="mt-6 inline-flex bg-[#a78345] px-6 py-3 text-xs font-bold uppercase tracking-[0.18em] text-[#ffffff] transition hover:bg-[#dfc17d]"
+                >
+                  Explore Custom Armor
+                </Link>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* About */}
+      <section className="border-y border-[#ded6c8] bg-[#fffdf8] py-14 sm:py-18">
+        <div className="mx-auto max-w-3xl px-4 text-center sm:px-6">
+          <p className="text-[10px] uppercase tracking-[0.3em] text-[#92713d]">
+            Our Story
+          </p>
+
+          <h2 className="mt-3 font-serif text-3xl font-bold sm:text-4xl">
+            Built for Those Who Appreciate History
+          </h2>
+
+          <p className="mt-5 text-sm leading-7 text-[#625e57]">
+            Medieval Armors brings historical-inspired armor and
+            reproductions to collectors, reenactors and enthusiasts around
+            the world. Explore our collection and discover pieces created
+            with character, detail and craftsmanship in mind.
+          </p>
+
+          <Link
+            href="/about"
+            className="mt-6 inline-flex border border-[#514838] px-6 py-3 text-xs font-bold uppercase tracking-[0.18em] text-[#a78345] transition hover:border-[#c7a65e]"
+          >
+            About Us
+          </Link>
+        </div>
+      </section>
+
+      {/* Customer Support */}
+      <section className="py-14 sm:py-16">
+        <div className="mx-auto max-w-7xl px-4 sm:px-6">
+          <div className="text-center">
+            <p className="text-[10px] uppercase tracking-[0.3em] text-[#92713d]">
+              Customer Care
+            </p>
+
+            <h2 className="mt-2 font-serif text-3xl font-bold">
+              Need Help?
+            </h2>
+          </div>
+
+          <div className="mt-8 grid gap-3 sm:grid-cols-4">
+            <Link
+              href="/contact"
+              className="border border-[#ded6c8] bg-[#fffdf8] p-5 text-center transition hover:border-[#bda477]"
+            >
+              <h3 className="font-serif text-lg font-bold">
+                Contact Us
+              </h3>
+              <p className="mt-1 text-xs text-[#6b665e]">
+                Get in touch with our team
+              </p>
+            </Link>
+
+            <Link
+              href="/faq"
+              className="border border-[#ded6c8] bg-[#fffdf8] p-5 text-center transition hover:border-[#bda477]"
+            >
+              <h3 className="font-serif text-lg font-bold">
+                FAQ
+              </h3>
+              <p className="mt-1 text-xs text-[#6b665e]">
+                Common questions answered
+              </p>
+            </Link>
+
+            <Link
+              href="/track-order"
+              className="border border-[#ded6c8] bg-[#fffdf8] p-5 text-center transition hover:border-[#bda477]"
+            >
+              <h3 className="font-serif text-lg font-bold">
+                Track Order
+              </h3>
+              <p className="mt-1 text-xs text-[#6b665e]">
+                Check your shipment status
+              </p>
+            </Link>
+
+            <Link
+              href="/policies/returns"
+              className="border border-[#ded6c8] bg-[#fffdf8] p-5 text-center transition hover:border-[#bda477]"
+            >
+              <h3 className="font-serif text-lg font-bold">
+                Returns
+              </h3>
+              <p className="mt-1 text-xs text-[#6b665e]">
+                Read our return policy
+              </p>
+            </Link>
+          </div>
+        </div>
+      </section>
+      <SiteFooter />
+    </main>
+  );
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

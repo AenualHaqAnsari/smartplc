@@ -1,0 +1,493 @@
+import Link from "next/link";
+import { notFound } from "next/navigation";
+import { prisma } from "@/lib/prisma";
+import { redirect } from "next/navigation";
+import { requireAdmin } from "@/lib/admin-auth";
+import OrderStatusControl from "./OrderStatusControl";
+import OrderCustomerDetails from "./OrderCustomerDetails";
+
+type Props = {
+  params: Promise<{
+    orderNumber: string;
+  }>;
+};
+
+export default async function AdminOrderPage({
+  params,
+}: Props) {
+    const authenticated = await requireAdmin();
+
+if (!authenticated) {
+  redirect("/admin/login");
+}
+  const { orderNumber } = await params;
+
+  const order = await prisma.order.findUnique({
+    where: {
+      orderNumber,
+    },
+    include: {
+  items: {
+    include: {
+      variant: true,
+    },
+  },
+},
+  });
+
+  if (!order) {
+    notFound();
+  }
+
+  const customer = order.customerId
+    ? await prisma.customer.findUnique({
+        where: {
+          id: order.customerId,
+        },
+      })
+    : null;
+
+  const address = order.shippingAddressId
+    ? await prisma.address.findUnique({
+        where: {
+          id: order.shippingAddressId,
+        },
+      })
+    : null;
+
+  const measurements =
+    await prisma.customMeasurement.findMany({
+      where: {
+        orderId: order.id,
+      },
+    });
+
+  return (
+    <main className="min-h-screen bg-[#0c0b09] text-[#eee8dc]">
+      <header className="border-b border-[#332d24]">
+        <div className="mx-auto flex max-w-7xl items-center justify-between px-6 py-5">
+          <Link
+            href="/admin"
+            className="font-serif text-2xl font-bold tracking-[0.08em] text-[#d6b875]"
+          >
+            MEDIEVAL ARMORS
+          </Link>
+
+          <Link
+            href="/admin"
+            className="text-sm uppercase tracking-[0.15em] text-[#c7a65e]"
+          >
+            ← All Orders
+          </Link>
+        </div>
+      </header>
+
+      <section className="mx-auto max-w-7xl px-6 py-12">
+        <div className="flex flex-col justify-between gap-5 md:flex-row md:items-end">
+          <div>
+            <p className="text-xs uppercase tracking-[0.35em] text-[#b49458]">
+              Order Details
+            </p>
+
+            <h1 className="mt-3 font-serif text-4xl font-bold">
+              {order.orderNumber}
+            </h1>
+
+            <p className="mt-3 text-sm text-[#777064]">
+              {new Date(
+                order.createdAt
+              ).toLocaleString("en-US")}
+            </p>
+          </div>
+
+          <div className="flex gap-3">
+            <StatusBadge
+              status={String(order.status)}
+            />
+
+            <StatusBadge
+              status={String(order.paymentStatus)}
+            />
+          </div>
+        </div>
+
+        <div className="mt-10 grid gap-7 lg:grid-cols-3">
+          {/* Customer */}
+          <section className="border border-[#332d24] bg-[#12100d] p-6">
+            <p className="text-xs uppercase tracking-[0.25em] text-[#b49458]">
+              Customer
+            </p>
+
+            <h2 className="mt-4 font-serif text-2xl font-bold">
+              {customer
+                ? `${customer.firstName} ${customer.lastName}`
+                : "Unknown Customer"}
+            </h2>
+
+            {customer && (
+              <div className="mt-5 space-y-2 text-sm text-[#999184]">
+                <p>{customer.email}</p>
+
+                {customer.phone && (
+                  <p>{customer.phone}</p>
+                )}
+              </div>
+            )}
+          </section>
+
+          {/* Shipping */}
+          <section className="border border-[#332d24] bg-[#12100d] p-6">
+            <p className="text-xs uppercase tracking-[0.25em] text-[#b49458]">
+              Shipping Address
+            </p>
+
+            {address ? (
+              <div className="mt-5 space-y-1 text-sm leading-6 text-[#999184]">
+                <p className="font-semibold text-[#eee8dc]">
+                  {address.firstName}{" "}
+                  {address.lastName}
+                </p>
+
+                <p>{address.address1}</p>
+
+                {address.address2 && (
+                  <p>{address.address2}</p>
+                )}
+
+                <p>
+                  {address.city},{" "}
+                  {address.state}
+                </p>
+
+                <p>{address.postalCode}</p>
+
+                <p>{address.country}</p>
+
+                {address.phone && (
+                  <p className="pt-2">
+                    {address.phone}
+                  </p>
+                )}
+              </div>
+            ) : (
+              <p className="mt-5 text-sm text-[#777064]">
+                No shipping address.
+              </p>
+            )}
+          </section>
+
+          {/* Payment */}
+          <section className="border border-[#332d24] bg-[#12100d] p-6">
+            <p className="text-xs uppercase tracking-[0.25em] text-[#b49458]">
+              Payment
+            </p>
+
+            <div className="mt-5">
+              <StatusBadge
+                status={String(
+                  order.paymentStatus
+                )}
+              />
+
+              <p className="mt-5 text-sm leading-6 text-[#777064]">
+                Payment gateway will be connected later.
+              </p>
+            </div>
+          </section>
+          <OrderStatusControl
+  orderNumber={order.orderNumber}
+  initialStatus={order.status}
+  initialPaymentStatus={order.paymentStatus}
+/>
+<OrderCustomerDetails
+  customer={
+    customer
+      ? {
+          firstName: customer.firstName,
+          lastName: customer.lastName,
+          email: customer.email,
+          phone: customer.phone,
+        }
+      : null
+  }
+  address={
+    address
+      ? {
+          firstName: address.firstName,
+          lastName: address.lastName,
+          company: address.company,
+          address1: address.address1,
+          address2: address.address2,
+          city: address.city,
+          state: address.state,
+          postalCode: address.postalCode,
+          country: address.country,
+          phone: address.phone,
+        }
+      : null
+  }
+  measurements={measurements.map((measurement) => ({
+    id: measurement.id,
+    itemName: measurement.itemName,
+    height: measurement.height?.toString() ?? null,
+    chest: measurement.chest?.toString() ?? null,
+    waist: measurement.waist?.toString() ?? null,
+    hip: measurement.hip?.toString() ?? null,
+    shoulder: measurement.shoulder?.toString() ?? null,
+    armLength: measurement.armLength?.toString() ?? null,
+    bicep: measurement.bicep?.toString() ?? null,
+    wrist: measurement.wrist?.toString() ?? null,
+    thigh: measurement.thigh?.toString() ?? null,
+    knee: measurement.knee?.toString() ?? null,
+    calf: measurement.calf?.toString() ?? null,
+    ankle: measurement.ankle?.toString() ?? null,
+    neck: measurement.neck?.toString() ?? null,
+    head: measurement.head?.toString() ?? null,
+    unit: measurement.unit,
+    notes: measurement.notes,
+  }))}
+/>
+        </div>
+
+        {/* Products */}
+        <section className="mt-7 border border-[#332d24] bg-[#12100d]">
+          <div className="border-b border-[#332d24] px-6 py-5">
+            <p className="text-xs uppercase tracking-[0.25em] text-[#b49458]">
+              Products
+            </p>
+
+            <h2 className="mt-2 font-serif text-3xl font-bold">
+              ORDER ITEMS
+            </h2>
+          </div>
+
+          <div className="divide-y divide-[#29251f]">
+            {order.items.map((item) => (
+              <div
+                key={item.id}
+                className="grid gap-5 px-6 py-6 md:grid-cols-[1fr_auto_auto_auto] md:items-center"
+              >
+                <div>
+                  <h3 className="font-serif text-xl font-bold">
+                    {item.productName}
+                  </h3>
+
+                  {item.variant && (
+  <div className="mt-3 space-y-1 text-sm text-[#999184]">
+    <p>
+      <span className="text-[#777064]">
+        Variant:
+      </span>{" "}
+      <span className="font-semibold text-[#c7a65e]">
+        {item.variant.name}
+      </span>
+    </p>
+
+    {item.variant.gauge && (
+      <p>
+        <span className="text-[#777064]">
+          Gauge:
+        </span>{" "}
+        {item.variant.gauge}
+      </p>
+    )}
+
+    {item.variant.size && (
+      <p>
+        <span className="text-[#777064]">
+          Size:
+        </span>{" "}
+        {item.variant.size}
+      </p>
+    )}
+
+    {item.variant.finish && (
+      <p>
+        <span className="text-[#777064]">
+          Finish:
+        </span>{" "}
+        {item.variant.finish}
+      </p>
+    )}
+
+    <p className="text-xs text-[#777064]">
+      Variant ID: {item.variantId}
+    </p>
+  </div>
+)}
+
+{item.customSize && (
+  <p className="mt-2 text-xs uppercase tracking-[0.12em] text-[#c7a65e]">
+    Custom Size
+  </p>
+)}
+                </div>
+
+                <div className="text-sm text-[#999184]">
+                  Qty: {item.quantity}
+                </div>
+
+                <div className="text-sm text-[#999184]">
+                  ${Number(item.unitPrice).toFixed(2)}
+                </div>
+
+                <div className="font-semibold text-[#c7a65e]">
+                  ${Number(item.totalPrice).toFixed(2)}
+                </div>
+              </div>
+            ))}
+          </div>
+        </section>
+
+        {/* Measurements */}
+        {measurements.length > 0 && (
+          <section className="mt-7 border border-[#332d24] bg-[#12100d]">
+            <div className="border-b border-[#332d24] px-6 py-5">
+              <p className="text-xs uppercase tracking-[0.25em] text-[#b49458]">
+                Custom Armor
+              </p>
+
+              <h2 className="mt-2 font-serif text-3xl font-bold">
+                MEASUREMENTS
+              </h2>
+            </div>
+
+            <div className="grid gap-5 p-6 sm:grid-cols-2 lg:grid-cols-4">
+              {measurements.map((measurement) => (
+                <Measurement
+                  label="Item"
+                  value={measurement.itemName}
+                />
+              ))}
+
+              {measurements.map((measurement) => (
+                <Measurement
+                  key={`${measurement.id}-height`}
+                  label="Height"
+                  value={measurement.height}
+                />
+              ))}
+
+              {measurements.map((measurement) => (
+                <Measurement
+                  key={`${measurement.id}-chest`}
+                  label="Chest"
+                  value={measurement.chest}
+                />
+              ))}
+
+              {measurements.map((measurement) => (
+                <Measurement
+                  key={`${measurement.id}-waist`}
+                  label="Waist"
+                  value={measurement.waist}
+                />
+              ))}
+
+              {measurements.map((measurement) => (
+                <Measurement
+                  key={`${measurement.id}-shoulder`}
+                  label="Shoulder"
+                  value={measurement.shoulder}
+                />
+              ))}
+
+              {measurements.map((measurement) => (
+                <Measurement
+                  key={`${measurement.id}-arm`}
+                  label="Arm Length"
+                  value={measurement.armLength}
+                />
+              ))}
+
+              {measurements.map((measurement) => (
+  <Measurement
+    key={`${measurement.id}-item`}
+    label="Item"
+    value={measurement.itemName}
+  />
+))}
+            </div>
+          </section>
+        )}
+
+        {/* Totals */}
+        <section className="mt-7 ml-auto max-w-md border border-[#3a342a] bg-[#12100d] p-7">
+          <div className="space-y-4 text-sm">
+            <div className="flex justify-between text-[#999184]">
+              <span>Subtotal</span>
+
+              <span>
+                ${Number(order.subtotal).toFixed(2)}
+              </span>
+            </div>
+
+            <div className="flex justify-between text-[#999184]">
+              <span>Shipping</span>
+
+              <span>
+                ${Number(order.shippingCost).toFixed(2)}
+              </span>
+            </div>
+
+            <div className="flex justify-between text-[#999184]">
+              <span>Tax</span>
+
+              <span>
+                ${Number(order.tax).toFixed(2)}
+              </span>
+            </div>
+
+            <div className="h-px bg-[#332d24]" />
+
+            <div className="flex justify-between">
+              <span className="font-serif text-xl font-bold">
+                Total
+              </span>
+
+              <span className="text-2xl font-bold text-[#c7a65e]">
+                ${Number(order.total).toFixed(2)}
+              </span>
+            </div>
+          </div>
+        </section>
+      </section>
+    </main>
+  );
+}
+
+function StatusBadge({
+  status,
+}: {
+  status: string;
+}) {
+  return (
+    <span className="inline-block border border-[#514838] px-3 py-1 text-[10px] uppercase tracking-[0.15em] text-[#c7a65e]">
+      {status}
+    </span>
+  );
+}
+
+function Measurement({
+  label,
+  value,
+}: {
+  label: string;
+  value: unknown;
+}) {
+  if (value === null || value === undefined) {
+    return null;
+  }
+
+  return (
+    <div className="border border-[#332d24] p-4">
+      <p className="text-[10px] uppercase tracking-[0.15em] text-[#777064]">
+        {label}
+      </p>
+
+      <p className="mt-2 font-semibold text-[#eee8dc]">
+        {String(value)}
+      </p>
+    </div>
+  );
+}

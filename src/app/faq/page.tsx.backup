@@ -1,0 +1,247 @@
+﻿import Link from "next/link";
+import StoreHeader from "@/components/layout/StoreHeader";
+import SiteFooter from "@/components/site/SiteFooter";
+
+const faqs = [
+  {
+    category: "Orders",
+    questions: [
+      {
+        question: "How do I place an order?",
+        answer:
+          "Browse our collection, select the product and available options, add it to your cart, and complete checkout. You will receive an order confirmation after your purchase is successfully placed.",
+      },
+      {
+        question: "Can I change my order after placing it?",
+        answer:
+          "If you need to make a change, please contact us as soon as possible with your order number. We will try to accommodate changes before the order enters production or fulfillment.",
+      },
+      {
+        question: "How can I check my order status?",
+        answer:
+          "Once your order has been shipped, tracking and delivery updates can be viewed from your customer account when tracking information is available.",
+      },
+    ],
+  },
+  {
+    category: "Products & Custom Sizing",
+    questions: [
+      {
+        question: "Are your armor pieces handcrafted?",
+        answer:
+          "Our products are handcrafted historical-inspired reproductions made with attention to traditional appearance, construction and detail.",
+      },
+      {
+        question: "Do you offer custom sizing?",
+        answer:
+          "Selected products are available with custom sizing. Please check the individual product page for availability and measurement requirements.",
+      },
+      {
+        question: "What measurements are required for custom armor?",
+        answer:
+          "Measurement requirements depend on the product. When custom sizing is available, the required measurements will be provided during the ordering process or by our support team.",
+      },
+      {
+        question: "Can I request a custom design?",
+        answer:
+          "Some products may be suitable for customization. Contact us before ordering with details about your requirements so we can confirm what is possible.",
+      },
+    ],
+  },
+  {
+    category: "Shipping & Delivery",
+    questions: [
+      {
+        question: "Do you ship internationally?",
+        answer:
+          "We offer worldwide shipping on eligible products. Shipping availability and costs are shown during checkout.",
+      },
+      {
+        question: "How long does shipping take?",
+        answer:
+          "Delivery time depends on the product, preparation time, destination and shipping service selected. Please see our Shipping Policy for more information.",
+      },
+      {
+        question: "Will I receive tracking information?",
+        answer:
+          "When tracking is available, tracking information will be added to your order and can be viewed from your customer account.",
+      },
+      {
+        question: "What happens if my package is delayed?",
+        answer:
+          "Please check the tracking information first. If the shipment has not received an update for an extended period, contact us with your order number and we will help investigate the shipment.",
+      },
+    ],
+  },
+  {
+    category: "Returns, Refunds & Cancellations",
+    questions: [
+      {
+        question: "Can I return an item?",
+        answer:
+          "Returns are subject to the conditions described in our Returns & Refunds Policy. Please review the policy before sending an item back.",
+      },
+      {
+        question: "Can I cancel my order?",
+        answer:
+          "Cancellation requests should be submitted as soon as possible. Orders that have already entered production, customization or shipment may not be eligible for cancellation.",
+      },
+      {
+        question: "How are refunds processed?",
+        answer:
+          "Approved refunds are processed according to our Returns & Refunds Policy and are generally returned through the original payment method where possible.",
+      },
+    ],
+  },
+  {
+    category: "Payments",
+    questions: [
+      {
+        question: "What payment methods are accepted?",
+        answer:
+          "Available payment methods are displayed during checkout and may vary depending on your location and the payment provider.",
+      },
+      {
+        question: "Is my payment information secure?",
+        answer:
+          "Payments are processed through our supported payment providers. We do not ask customers to send card details through email or other unsecured communication channels.",
+      },
+    ],
+  },
+  {
+    category: "Customer Support",
+    questions: [
+      {
+        question: "How can I contact Medieval Armors?",
+        answer:
+          "You can contact our customer support team through our Contact Us page. For order-related questions, please include your order number.",
+      },
+      {
+        question: "What should I include when contacting support?",
+        answer:
+          "For an existing order, include your order number and a clear description of the issue. For a product question, include the product name or product page whenever possible.",
+      },
+    ],
+  },
+];
+
+export default function FAQPage() {
+  return (
+    <main className="min-h-screen bg-[#f7f3ea] text-[#242321]">
+      <StoreHeader />
+
+      <section className="border-b border-[#ded6c8] bg-[#fffdf8] px-4 py-14 sm:px-6 sm:py-18">
+        <div className="mx-auto max-w-5xl">
+          <p className="text-[10px] font-semibold uppercase tracking-[0.3em] text-[#92713d]">
+            Customer Information
+          </p>
+
+          <h1 className="mt-3 font-serif text-4xl font-bold sm:text-5xl">
+            Frequently Asked Questions
+          </h1>
+
+          <p className="mt-5 max-w-2xl text-sm leading-7 text-[#999184] sm:text-base">
+            Find answers to common questions about our products, orders,
+            custom sizing, shipping and customer support.
+          </p>
+        </div>
+      </section>
+
+      <section className="mx-auto max-w-5xl px-4 py-12 sm:px-6 sm:py-16">
+        <div className="space-y-10">
+          {faqs.map((section) => (
+            <div key={section.category}>
+              <div className="mb-4">
+                <p className="text-[10px] font-semibold uppercase tracking-[0.3em] text-[#92713d]">
+                  {section.category}
+                </p>
+              </div>
+
+              <div className="divide-y divide-[#332d24] border border-[#ded6c8] bg-[#fffdf8]">
+                {section.questions.map((faq) => (
+                  <details
+                    key={faq.question}
+                    className="group px-5 py-5 sm:px-7"
+                  >
+                    <summary className="flex cursor-pointer list-none items-center justify-between gap-5 font-serif text-base font-semibold sm:text-lg">
+                      <span>{faq.question}</span>
+
+                      <span className="shrink-0 text-xl font-normal text-[#a78345] transition-transform group-open:rotate-45">
+                        +
+                      </span>
+                    </summary>
+
+                    <p className="mt-4 max-w-3xl text-sm leading-7 text-[#999184]">
+                      {faq.answer}
+                    </p>
+                  </details>
+                ))}
+              </div>
+            </div>
+          ))}
+        </div>
+
+        <div className="mt-12 border border-[#c9bea9] bg-[#14120f] p-7 text-center sm:p-10">
+          <p className="text-[10px] font-semibold uppercase tracking-[0.3em] text-[#92713d]">
+            Still Have Questions?
+          </p>
+
+          <h2 className="mt-3 font-serif text-2xl font-bold sm:text-3xl">
+            Our Support Team Can Help
+          </h2>
+
+          <p className="mx-auto mt-4 max-w-xl text-sm leading-7 text-[#999184]">
+            If you cannot find the answer you are looking for, contact us and
+            we will be happy to assist.
+          </p>
+
+          <Link
+            href="/contact"
+            className="mt-7 inline-flex bg-[#a78345] px-8 py-3.5 text-[10px] font-bold uppercase tracking-[0.18em] text-[#17130d] transition hover:bg-[#dfc17d]"
+          >
+            Contact Us
+          </Link>
+        </div>
+
+        <div className="mt-8 flex flex-wrap justify-center gap-x-6 gap-y-3 text-[10px] font-semibold uppercase tracking-[0.15em] text-[#a78345]">
+          <Link
+            href="/policies/shipping"
+            className="hover:text-[#dfc17d]"
+          >
+            Shipping Policy
+          </Link>
+
+          <Link
+            href="/policies/returns"
+            className="hover:text-[#dfc17d]"
+          >
+            Returns & Refunds
+          </Link>
+
+          <Link
+            href="/policies/cancellation"
+            className="hover:text-[#dfc17d]"
+          >
+            Cancellation Policy
+          </Link>
+
+          <Link
+            href="/contact"
+            className="hover:text-[#dfc17d]"
+          >
+            Customer Support
+          </Link>
+        </div>
+      </section>
+
+      <footer className="border-t border-[#ded6c8] px-4 py-8 text-center text-xs text-[#777064]">
+        <p>Medieval Armors</p>
+        <p className="mt-2">
+          Historical-inspired armor and handcrafted reproductions.
+        </p>
+      </footer>
+          <SiteFooter />
+    </main>
+  );
+}
+

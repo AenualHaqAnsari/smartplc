@@ -1,0 +1,193 @@
+import Link from "next/link";
+
+export default function AboutPage() {
+  return (
+    <main className="min-h-screen bg-[#0c0b09] text-[#eee8dc]">
+      <header className="border-b border-[#332d24]">
+        <div className="mx-auto flex max-w-7xl items-center justify-between px-4 py-5 sm:px-6">
+          <Link
+            href="/"
+            className="font-serif text-xl font-bold tracking-[0.1em] text-[#d6b875] sm:text-2xl"
+          >
+            MEDIEVAL ARMORS
+          </Link>
+
+          <Link
+            href="/products"
+            className="text-[10px] font-semibold uppercase tracking-[0.18em] text-[#c7a65e]"
+          >
+            Shop
+          </Link>
+        </div>
+      </header>
+
+      <section className="border-b border-[#332d24] bg-[#12100d] px-4 py-16 sm:px-6 sm:py-20">
+        <div className="mx-auto max-w-5xl">
+          <p className="text-[10px] font-semibold uppercase tracking-[0.3em] text-[#b49458]">
+            Our Story
+          </p>
+
+          <h1 className="mt-3 max-w-3xl font-serif text-4xl font-bold leading-tight sm:text-5xl">
+            Bringing the World of Medieval Armor to Life
+          </h1>
+
+          <p className="mt-6 max-w-2xl text-sm leading-7 text-[#999184] sm:text-base">
+            Medieval Armors is dedicated to historical-inspired armor,
+            helmets, shields and handcrafted reproductions created for
+            collectors, reenactors and enthusiasts.
+          </p>
+        </div>
+      </section>
+
+      <section className="mx-auto max-w-5xl px-4 py-12 sm:px-6 sm:py-16">
+        <div className="grid gap-10 md:grid-cols-2 md:gap-14">
+          <div>
+            <p className="text-[10px] font-semibold uppercase tracking-[0.25em] text-[#b49458]">
+              What We Do
+            </p>
+
+            <h2 className="mt-3 font-serif text-3xl font-bold">
+              Crafted With Character
+            </h2>
+
+            <div className="mt-5 space-y-4 text-sm leading-7 text-[#999184]">
+              <p>
+                Our collection focuses on medieval-inspired pieces that
+                capture the character and appearance of historical armor while
+                remaining accessible to modern collectors and enthusiasts.
+              </p>
+
+              <p>
+                From complete armor sets and helmets to shields and
+                gauntlets, each piece is selected with attention to design,
+                appearance and craftsmanship.
+              </p>
+
+              <p>
+                We also offer selected products with custom sizing for
+                customers looking for a more personal fit.
+              </p>
+            </div>
+          </div>
+
+          <div className="border border-[#332d24] bg-[#14120f] p-7 sm:p-9">
+            <p className="text-[10px] font-semibold uppercase tracking-[0.25em] text-[#b49458]">
+              Our Promise
+            </p>
+
+            <h2 className="mt-3 font-serif text-2xl font-bold">
+              A Store Built Around the Customer
+            </h2>
+
+            <ul className="mt-6 space-y-4 text-sm leading-6 text-[#999184]">
+              <li className="border-b border-[#332d24] pb-4">
+                <strong className="text-[#eee8dc]">
+                  Clear Product Information
+                </strong>
+                <br />
+                We aim to provide useful product descriptions and specifications
+                so you can make an informed decision.
+              </li>
+
+              <li className="border-b border-[#332d24] pb-4">
+                <strong className="text-[#eee8dc]">
+                  Careful Preparation
+                </strong>
+                <br />
+                Orders are prepared with attention to packaging and delivery.
+              </li>
+
+              <li className="border-b border-[#332d24] pb-4">
+                <strong className="text-[#eee8dc]">
+                  Customer Support
+                </strong>
+                <br />
+                We are available to help with product, order and shipping
+                questions.
+              </li>
+
+              <li>
+                <strong className="text-[#eee8dc]">
+                  Custom Options
+                </strong>
+                <br />
+                Selected products can be prepared according to customer
+                measurements.
+              </li>
+            </ul>
+          </div>
+        </div>
+      </section>
+
+      <section className="border-y border-[#332d24] bg-[#12100d]">
+        <div className="mx-auto grid max-w-5xl grid-cols-2 sm:grid-cols-4">
+          <div className="border-b border-[#332d24] px-5 py-8 text-center sm:border-b-0 sm:border-r">
+            <p className="font-serif text-xl font-bold text-[#c7a65e]">
+              Armor
+            </p>
+            <p className="mt-2 text-[10px] uppercase tracking-[0.15em] text-[#777064]">
+              Historical Inspired
+            </p>
+          </div>
+
+          <div className="border-b border-[#332d24] px-5 py-8 text-center sm:border-b-0 sm:border-r">
+            <p className="font-serif text-xl font-bold text-[#c7a65e]">
+              Custom
+            </p>
+            <p className="mt-2 text-[10px] uppercase tracking-[0.15em] text-[#777064]">
+              Selected Products
+            </p>
+          </div>
+
+          <div className="border-r border-[#332d24] px-5 py-8 text-center">
+            <p className="font-serif text-xl font-bold text-[#c7a65e]">
+              Worldwide
+            </p>
+            <p className="mt-2 text-[10px] uppercase tracking-[0.15em] text-[#777064]">
+              Shipping Available
+            </p>
+          </div>
+
+          <div className="px-5 py-8 text-center">
+            <p className="font-serif text-xl font-bold text-[#c7a65e]">
+              Support
+            </p>
+            <p className="mt-2 text-[10px] uppercase tracking-[0.15em] text-[#777064]">
+              Customer Assistance
+            </p>
+          </div>
+        </div>
+      </section>
+
+      <section className="mx-auto max-w-5xl px-4 py-14 text-center sm:px-6 sm:py-18">
+        <p className="text-[10px] font-semibold uppercase tracking-[0.3em] text-[#b49458]">
+          Explore the Collection
+        </p>
+
+        <h2 className="mt-3 font-serif text-3xl font-bold">
+          Find Your Piece of History
+        </h2>
+
+        <p className="mx-auto mt-4 max-w-xl text-sm leading-7 text-[#999184]">
+          Explore our collection of armor, helmets, shields and other
+          medieval-inspired pieces.
+        </p>
+
+        <Link
+          href="/products"
+          className="mt-7 inline-flex bg-[#c7a65e] px-7 py-3 text-[10px] font-bold uppercase tracking-[0.18em] text-[#17130d] transition hover:bg-[#dfc17d]"
+        >
+          Shop the Collection
+        </Link>
+      </section>
+
+      <footer className="border-t border-[#332d24] px-4 py-8 text-center text-xs text-[#777064]">
+        <p>Medieval Armors</p>
+
+        <p className="mt-2">
+          Historical-inspired armor and handcrafted reproductions.
+        </p>
+      </footer>
+    </main>
+  );
+}

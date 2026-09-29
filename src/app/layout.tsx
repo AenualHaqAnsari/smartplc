@@ -1,0 +1,24 @@
+import type { Metadata } from "next";
+import AnalyticsTracker from "@/components/AnalyticsTracker";
+import type { ReactNode } from "react";
+import { Geist, Geist_Mono } from "next/font/google";
+import "./globals.css";
+import { CartProvider } from "@/components/cart/CartProvider";
+import { CurrencyProvider } from "@/components/currency/CurrencyProvider";
+import SiteJsonLd from "@/components/seo/SiteJsonLd";
+import FloatingSupportChat from "@/components/support/FloatingSupportChat";
+import Script from "next/script";
+const sans=Geist({variable:"--font-geist-sans",subsets:["latin"]});
+const mono=Geist_Mono({variable:"--font-geist-mono",subsets:["latin"]});
+export const metadata:Metadata={
+ metadataBase:new URL(process.env.NEXT_PUBLIC_SITE_URL||"http://localhost:3000"),
+ title:{default:"Industrial Automation Products & Services",template:"%s | Industrial Automation"},
+ description:"Industrial automation products and engineering services for PLC, HMI, SCADA, VFD, servo, sensors, industrial communication and control panels.",
+ applicationName:"Industrial Automation",generator:"Next.js",referrer:"origin-when-cross-origin",
+ keywords:["industrial automation","PLC automation","PLC programming","PLC HMI","SCADA automation","VFD programming","servo automation","industrial control panel","machine automation","automation components"],
+ openGraph:{type:"website",siteName:"Industrial Automation",title:"Industrial Automation Products & Services",description:"Products and engineering services for PLC, HMI, SCADA, drives, sensors and control panels."},
+ twitter:{card:"summary_large_image",title:"Industrial Automation Products & Services",description:"Industrial controls products and engineering services."},
+ robots:{index:true,follow:true,googleBot:{index:true,follow:true,"max-image-preview":"large","max-snippet":-1,"max-video-preview":-1}},
+};
+export default function RootLayout({children}:{children:ReactNode}){return <html lang="en" className={`${sans.variable} ${mono.variable} h-full antialiased`}><body><Script src="https://www.googletagmanager.com/gtag/js?id=AW-17697827176" strategy="afterInteractive"/><Script id="google-ads-tag" strategy="afterInteractive">{'window.dataLayer=window.dataLayer||[];function gtag(){window.dataLayer.push(arguments)}gtag("js",new Date());gtag("config","AW-17697827176")'}</Script><SiteJsonLd siteUrl={process.env.NEXT_PUBLIC_SITE_URL}/><CartProvider><CurrencyProvider><AnalyticsTracker/>{children}<FloatingSupportChat/></CurrencyProvider></CartProvider></body></html>}
+

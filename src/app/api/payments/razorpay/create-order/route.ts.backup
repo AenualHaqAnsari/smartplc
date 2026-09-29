@@ -1,0 +1,344 @@
+import Razorpay from "razorpay";
+import { prisma } from "@/lib/prisma";
+import { getCustomerId } from "@/lib/customer-auth";
+
+const razorpay = new Razorpay({
+  key_id: process.env.RAZORPAY_KEY_ID!,
+  key_secret: process.env.RAZORPAY_KEY_SECRET!,
+});
+
+export async function POST(request: Request) {
+  try {
+        const customerId = await getCustomerId();
+
+    if (!customerId) {
+      return Response.json(
+        {
+          error:
+            "Please log in before checkout.",
+        },
+        { status: 401 }
+      );
+    }
+    const body = await request.json();
+
+const country = String(
+  body.country || ""
+)
+  .trim()
+  .toUpperCase();
+
+if (!country) {
+  return Response.json(
+    {
+      error:
+        "Customer country is required.",
+    },
+    { status: 400 }
+  );
+}
+
+const cart = await prisma.cart.findUnique({
+  where: {
+    customerId,
+  },
+  include: {
+    items: {
+      include: {
+        product: true,
+        variant: true,
+      },
+      orderBy: {
+        createdAt: "asc",
+      },
+    },
+  },
+});
+
+if (!cart || cart.items.length === 0) {
+  return Response.json(
+    {
+      error: "Your cart is empty.",
+    },
+    { status: 400 }
+  );
+}
+
+const items = cart.items;
+
+    if (
+      !Array.isArray(items) ||
+      items.length === 0
+    ) {
+      return Response.json(
+        {
+          error: "Cart is empty.",
+        },
+        { status: 400 }
+      );
+    }
+
+    if (!country) {
+      return Response.json(
+        {
+          error:
+            "Customer country is required.",
+        },
+        { status: 400 }
+      );
+    }
+
+    const variantIds = items
+      .map(
+        (item: { variantId?: string }) =>
+          item.variantId
+      )
+      .filter(
+        (
+          id: string | undefined
+        ): id is string =>
+          Boolean(id)
+      );
+
+    if (
+      variantIds.length !== items.length
+    ) {
+      return Response.json(
+        {
+          error:
+            "One or more cart items are invalid.",
+        },
+        { status: 400 }
+      );
+    }
+
+    const variants =
+      await prisma.productVariant.findMany({
+        where: {
+          id: {
+            in: variantIds,
+          },
+        },
+        include: {
+          product: true,
+        },
+      });
+
+    if (
+      variants.length !==
+      variantIds.length
+    ) {
+      return Response.json(
+        {
+          error:
+            "One or more products are no longer available.",
+        },
+        { status: 400 }
+      );
+    }
+
+    const variantMap = new Map(
+      variants.map((variant) => [
+        variant.id,
+        variant,
+      ])
+    );
+
+    let subtotal = 0;
+
+    for (const item of items) {
+      const variant = variantMap.get(
+        item.variantId
+      );
+
+      if (!variant) {
+        return Response.json(
+          {
+            error:
+              "Product variant not found.",
+          },
+          { status: 400 }
+        );
+      }
+
+      const quantity = Number(
+        item.quantity
+      );
+
+      if (
+        !Number.isInteger(quantity) ||
+        quantity < 1
+      ) {
+        return Response.json(
+          {
+            error:
+              "Invalid product quantity.",
+          },
+          { status: 400 }
+        );
+      }
+
+      if (variant.stock < quantity) {
+        return Response.json(
+          {
+            error: `${variant.product.name} does not have enough stock.`,
+          },
+          { status: 400 }
+        );
+      }
+
+      subtotal +=
+        Number(variant.price) *
+        quantity;
+    }
+
+    if (
+      !Number.isFinite(subtotal) ||
+      subtotal <= 0
+    ) {
+      return Response.json(
+        {
+          error:
+            "Invalid order total.",
+        },
+        { status: 400 }
+      );
+    }
+
+    /*
+     * Worldwide shipping is currently free.
+     */
+    const shippingCost = 0;
+
+    /*
+     * Load configurable tax rates.
+     */
+    const settings =
+      await prisma.storeSetting.findMany({
+        where: {
+          key: {
+            in: [
+              "india_tax_rate",
+              "international_tax_rate",
+            ],
+          },
+        },
+      });
+
+    const settingMap = new Map(
+      settings.map((setting) => [
+        setting.key,
+        setting.value,
+      ])
+    );
+
+    const indiaTaxRate = Number(
+      settingMap.get(
+        "india_tax_rate"
+      ) ?? "17"
+    );
+
+    const internationalTaxRate =
+      Number(
+        settingMap.get(
+          "international_tax_rate"
+        ) ?? "0"
+      );
+
+    if (
+      !Number.isFinite(indiaTaxRate) ||
+      indiaTaxRate < 0 ||
+      indiaTaxRate > 100
+    ) {
+      return Response.json(
+        {
+          error:
+            "Invalid India tax configuration.",
+        },
+        { status: 500 }
+      );
+    }
+
+    if (
+      !Number.isFinite(
+        internationalTaxRate
+      ) ||
+      internationalTaxRate < 0 ||
+      internationalTaxRate > 100
+    ) {
+      return Response.json(
+        {
+          error:
+            "Invalid international tax configuration.",
+        },
+        { status: 500 }
+      );
+    }
+
+    const taxRate =
+      country === "IN"
+        ? indiaTaxRate
+        : internationalTaxRate;
+
+    const tax =
+      (subtotal + shippingCost) *
+      (taxRate / 100);
+
+    const total =
+      subtotal +
+      shippingCost +
+      tax;
+
+    if (
+      !Number.isFinite(total) ||
+      total <= 0
+    ) {
+      return Response.json(
+        {
+          error:
+            "Invalid calculated order total.",
+        },
+        { status: 400 }
+      );
+    }
+
+    /*
+     * Create Razorpay order using
+     * the server-calculated final total.
+     */
+    const order =
+      await razorpay.orders.create({
+        amount: Math.round(
+          total * 100
+        ),
+        currency: "USD",
+        receipt: `ma_${Date.now()}`,
+      });
+
+    return Response.json({
+      success: true,
+      orderId: order.id,
+      amount: order.amount,
+      currency: order.currency,
+
+      subtotal,
+      shippingCost,
+      taxRate,
+      tax,
+      total,
+    });
+  } catch (error) {
+    console.error(
+      "RAZORPAY CREATE ORDER ERROR:",
+      error
+    );
+
+    return Response.json(
+      {
+        error:
+          "Unable to create Razorpay order.",
+      },
+      { status: 500 }
+    );
+  }
+}

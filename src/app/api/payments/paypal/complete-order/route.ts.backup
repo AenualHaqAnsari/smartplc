@@ -1,0 +1,600 @@
+﻿import { prisma } from "@/lib/prisma";
+import { getCustomerId } from "@/lib/customer-auth";
+import { sendOrderConfirmationEmail } from "@/lib/email";
+import {
+  getPayPalAccessToken,
+  getPayPalApiBase,
+} from "@/lib/payments/paypal/paypal";
+
+type CustomerData = {
+  firstName: string;
+  lastName: string;
+  email: string;
+  phone: string;
+  address1: string;
+  address2?: string;
+  city: string;
+  state: string;
+  postalCode: string;
+  country: string;
+};
+
+export async function POST(request: Request) {
+  try {
+    const customerId = await getCustomerId();
+
+    if (!customerId) {
+      return Response.json(
+        { error: "Please log in before checkout." },
+        { status: 401 }
+      );
+    }
+
+    const body = await request.json();
+
+    const {
+      customer,
+      paypalOrderId,
+    }: {
+      customer: CustomerData;
+      paypalOrderId: string;
+    } = body;
+
+    if (!customer) {
+      return Response.json(
+        { error: "Customer information is required." },
+        { status: 400 }
+      );
+    }
+
+    if (!paypalOrderId) {
+      return Response.json(
+        { error: "Missing PayPal order ID." },
+        { status: 400 }
+      );
+    }
+
+    const requiredCustomerFields = [
+      "firstName",
+      "lastName",
+      "email",
+      "phone",
+      "address1",
+      "city",
+      "state",
+      "postalCode",
+      "country",
+    ] as const;
+
+    for (const field of requiredCustomerFields) {
+      if (!customer[field]) {
+        return Response.json(
+          {
+            error:
+              "Please complete all required customer and shipping fields.",
+          },
+          { status: 400 }
+        );
+      }
+    }
+
+    const accessToken = await getPayPalAccessToken();
+
+    const captureResponse = await fetch(
+      `${getPayPalApiBase()}/v2/checkout/orders/${encodeURIComponent(
+        paypalOrderId
+      )}/capture`,
+      {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${accessToken}`,
+          "Content-Type": "application/json",
+          Prefer: "return=representation",
+        },
+        cache: "no-store",
+      }
+    );
+
+    const paypalOrder = await captureResponse.json();
+
+    if (!captureResponse.ok) {
+      console.error("PAYPAL CAPTURE ERROR:", paypalOrder);
+
+      return Response.json(
+        { error: "Unable to capture PayPal payment." },
+        { status: 500 }
+      );
+    }
+
+    const capture =
+      paypalOrder.purchase_units?.[0]?.payments?.captures?.[0];
+
+    if (
+      paypalOrder.status !== "COMPLETED" ||
+      capture?.status !== "COMPLETED"
+    ) {
+      return Response.json(
+        { error: "PayPal payment was not completed." },
+        { status: 400 }
+      );
+    }
+
+    const captureId = String(capture.id || "").trim();
+
+    if (!captureId) {
+      return Response.json(
+        { error: "PayPal capture ID was not returned." },
+        { status: 400 }
+      );
+    }
+
+    const existingPayment = await prisma.payment.findFirst({
+      where: {
+        transactionId: captureId,
+      },
+      include: {
+        order: true,
+      },
+    });
+
+    if (existingPayment) {
+      return Response.json({
+        success: true,
+        alreadyProcessed: true,
+        orderNumber: existingPayment.order.orderNumber,
+        orderId: existingPayment.order.id,
+      });
+    }
+
+    const cart = await prisma.cart.findUnique({
+      where: {
+        customerId,
+      },
+      include: {
+        items: {
+          include: {
+            product: true,
+            variant: true,
+          },
+          orderBy: {
+            createdAt: "asc",
+          },
+        },
+      },
+    });
+
+    if (!cart || cart.items.length === 0) {
+      return Response.json(
+        { error: "Your cart is empty." },
+        { status: 400 }
+      );
+    }
+
+    const dbCustomer = await prisma.customer.findUnique({
+      where: {
+        id: customerId,
+      },
+    });
+
+    if (!dbCustomer) {
+      return Response.json(
+        { error: "Customer account could not be found." },
+        { status: 401 }
+      );
+    }
+
+    let subtotal = 0;
+
+    const orderItems = cart.items.map((cartItem) => {
+      const variant = cartItem.variant;
+
+      if (!variant) {
+        throw new Error("One or more cart items are invalid.");
+      }
+
+      if (variant.productId !== cartItem.productId) {
+        throw new Error("One or more cart items are invalid.");
+      }
+
+      const quantity = Number(cartItem.quantity);
+
+      if (!Number.isInteger(quantity) || quantity < 1) {
+        throw new Error("Invalid cart quantity.");
+      }
+
+      if (variant.stock < quantity) {
+        throw new Error(
+          `${cartItem.product.name} does not have enough stock.`
+        );
+      }
+
+      const unitPrice = Number(variant.price);
+      const totalPrice = unitPrice * quantity;
+
+      subtotal += totalPrice;
+
+      return {
+        productId: variant.productId,
+        productName: cartItem.product.name,
+        variantId: variant.id,
+        quantity,
+        unitPrice,
+        totalPrice,
+        customSize: Boolean(cartItem.customSize),
+        measurements: cartItem.customSize
+          ? (cartItem.measurements as Record<string, string> | null | undefined) ??
+            {}
+          : null,
+      };
+    });
+
+    if (!Number.isFinite(subtotal) || subtotal <= 0) {
+      throw new Error("Invalid order total.");
+    }
+
+    const settings = await prisma.storeSetting.findMany({
+      where: {
+        key: {
+          in: [
+            "india_tax_rate",
+            "international_tax_rate",
+            "discount_india",
+            "discount_united_kingdom",
+            "discount_germany",
+            "discount_france",
+            "discount_italy",
+            "discount_belgium",
+            "discount_spain",
+            "discount_switzerland",
+            "discount_united_states",
+            "discount_everywhere",
+          ],
+        },
+      },
+    });
+
+    const settingMap = new Map(
+      settings.map((setting) => [setting.key, setting.value])
+    );
+
+    const indiaTaxRate = Number(
+      settingMap.get("india_tax_rate") ?? "17"
+    );
+
+    const internationalTaxRate = Number(
+      settingMap.get("international_tax_rate") ?? "0"
+    );
+
+    if (
+      !Number.isFinite(indiaTaxRate) ||
+      indiaTaxRate < 0 ||
+      indiaTaxRate > 100
+    ) {
+      throw new Error("Invalid India tax configuration.");
+    }
+
+    if (
+      !Number.isFinite(internationalTaxRate) ||
+      internationalTaxRate < 0 ||
+      internationalTaxRate > 100
+    ) {
+      throw new Error("Invalid international tax configuration.");
+    }
+
+    const country = String(dbCustomer.country || "")
+      .trim()
+      .toUpperCase();
+
+    if (!country) {
+      throw new Error("Customer country is not configured.");
+    }
+
+    const isIndia = country === "INDIA" || country === "IN";
+
+    const taxRate = isIndia
+      ? indiaTaxRate
+      : internationalTaxRate;
+
+    const discountIndia = Number(
+      settingMap.get("discount_india") ?? "0"
+    );
+
+    const discountUnitedKingdom = Number(
+      settingMap.get("discount_united_kingdom") ?? "50"
+    );
+
+    const discountGermany = Number(
+      settingMap.get("discount_germany") ?? "50"
+    );
+
+    const discountFrance = Number(
+      settingMap.get("discount_france") ?? "50"
+    );
+
+    const discountItaly = Number(
+      settingMap.get("discount_italy") ?? "50"
+    );
+
+    const discountBelgium = Number(
+      settingMap.get("discount_belgium") ?? "50"
+    );
+
+    const discountSpain = Number(
+      settingMap.get("discount_spain") ?? "50"
+    );
+
+    const discountSwitzerland = Number(
+      settingMap.get("discount_switzerland") ?? "50"
+    );
+
+    const discountUnitedStates = Number(
+      settingMap.get("discount_united_states") ?? "50"
+    );
+
+    const discountEverywhere = Number(
+      settingMap.get("discount_everywhere") ?? "50"
+    );
+
+    const discountMap: Record<string, number> = {
+      "UNITED KINGDOM": discountUnitedKingdom,
+      UK: discountUnitedKingdom,
+      GERMANY: discountGermany,
+      FRANCE: discountFrance,
+      ITALY: discountItaly,
+      BELGIUM: discountBelgium,
+      SPAIN: discountSpain,
+      SWITZERLAND: discountSwitzerland,
+      "UNITED STATES": discountUnitedStates,
+      US: discountUnitedStates,
+      USA: discountUnitedStates,
+    };
+
+    const discountRate = isIndia
+      ? discountIndia
+      : (discountMap[country] ?? discountEverywhere);
+
+    if (
+      !Number.isFinite(discountRate) ||
+      discountRate < 0 ||
+      discountRate > 100
+    ) {
+      throw new Error(
+        "Invalid country discount configuration."
+      );
+    }
+
+    const discount = subtotal * (discountRate / 100);
+    const discountedSubtotal = subtotal - discount;
+    const shippingCost = 0;
+
+    const tax =
+      (discountedSubtotal + shippingCost) *
+      (taxRate / 100);
+
+    const total =
+      discountedSubtotal +
+      shippingCost +
+      tax;
+
+    if (!Number.isFinite(total) || total <= 0) {
+      throw new Error("Invalid order total.");
+    }
+
+    const paypalAmount = Number(
+      paypalOrder.purchase_units?.[0]?.payments?.captures?.[0]
+        ?.amount?.value
+    );
+
+    const paypalCurrency = String(
+      paypalOrder.purchase_units?.[0]?.payments?.captures?.[0]
+        ?.amount?.currency_code || ""
+    ).toUpperCase();
+
+    const expectedAmount = Math.round(total * 100);
+    const actualAmount = Math.round(paypalAmount * 100);
+
+    if (actualAmount !== expectedAmount) {
+      throw new Error(
+        "PayPal payment amount does not match the order total."
+      );
+    }
+
+    if (paypalCurrency !== "USD") {
+      throw new Error(
+        "PayPal payment currency does not match."
+      );
+    }
+
+    const orderNumber = `MA-${Date.now()}-${Math.floor(
+      Math.random() * 1000
+    )}`;
+
+    const order = await prisma.$transaction(async (tx) => {
+      const address = await tx.address.create({
+        data: {
+          firstName: customer.firstName,
+          lastName: customer.lastName,
+          address1: customer.address1,
+          address2: customer.address2 || null,
+          city: customer.city,
+          state: customer.state,
+          postalCode: customer.postalCode,
+          country: customer.country,
+          phone: customer.phone,
+          customerId: dbCustomer.id,
+        },
+      });
+
+      const createdOrder = await tx.order.create({
+        data: {
+          orderNumber,
+          customerId: dbCustomer.id,
+          shippingAddressId: address.id,
+          subtotal,
+          shippingCost,
+          discount,
+          tax,
+          total,
+          currency: "USD",
+          status: "CONFIRMED",
+          paymentStatus: "PAID",
+          items: {
+            create: orderItems.map((item) => ({
+              productId: item.productId,
+              productName: item.productName,
+              variantId: item.variantId,
+              quantity: item.quantity,
+              unitPrice: item.unitPrice,
+              totalPrice: item.totalPrice,
+              customSize: item.customSize,
+            })),
+          },
+          payments: {
+            create: {
+              provider: "PAYPAL",
+              transactionId: captureId,
+              amount: total,
+              currency: "USD",
+              status: "PAID",
+              rawResponse: paypalOrder,
+            },
+          },
+        },
+        include: {
+          items: true,
+        },
+      });
+
+      for (const item of orderItems) {
+        if (!item.customSize || !item.measurements) {
+          continue;
+        }
+
+        const measurements = item.measurements;
+
+        await tx.customMeasurement.create({
+          data: {
+            orderId: createdOrder.id,
+            itemName: item.productName,
+            height: measurements.height
+              ? Number(measurements.height)
+              : null,
+            chest: measurements.chest
+              ? Number(measurements.chest)
+              : null,
+            waist: measurements.waist
+              ? Number(measurements.waist)
+              : null,
+            hip: measurements.hip
+              ? Number(measurements.hip)
+              : null,
+            shoulder: measurements.shoulder
+              ? Number(measurements.shoulder)
+              : null,
+            armLength: measurements.armLength
+              ? Number(measurements.armLength)
+              : null,
+            bicep: measurements.bicep
+              ? Number(measurements.bicep)
+              : null,
+            wrist: measurements.wrist
+              ? Number(measurements.wrist)
+              : null,
+            thigh: measurements.thigh
+              ? Number(measurements.thigh)
+              : null,
+            knee: measurements.knee
+              ? Number(measurements.knee)
+              : null,
+            calf: measurements.calf
+              ? Number(measurements.calf)
+              : null,
+            ankle: measurements.ankle
+              ? Number(measurements.ankle)
+              : null,
+            neck: measurements.neck
+              ? Number(measurements.neck)
+              : null,
+            head: measurements.head
+              ? Number(measurements.head)
+              : null,
+            unit: "cm",
+            notes: null,
+          },
+        });
+      }
+
+      for (const item of orderItems) {
+        const stockUpdate =
+          await tx.productVariant.updateMany({
+            where: {
+              id: item.variantId,
+              stock: {
+                gte: item.quantity,
+              },
+            },
+            data: {
+              stock: {
+                decrement: item.quantity,
+              },
+            },
+          });
+
+        if (stockUpdate.count !== 1) {
+          throw new Error(
+            `${item.productName} does not have enough stock.`
+          );
+        }
+      }
+
+      await tx.cartItem.deleteMany({
+        where: {
+          cartId: cart.id,
+        },
+      });
+
+      return createdOrder;
+    });
+
+    try {
+      await sendOrderConfirmationEmail({
+        customerName:
+          `${customer.firstName} ${customer.lastName}`,
+        customerEmail: customer.email,
+        orderNumber: order.orderNumber,
+        items: order.items.map((item) => ({
+          productName: item.productName,
+          quantity: item.quantity,
+          totalPrice: item.totalPrice.toString(),
+        })),
+        total: order.total.toString(),
+      });
+    } catch (emailError) {
+      console.error(
+        "ORDER CONFIRMATION EMAIL ERROR:",
+        emailError
+      );
+    }
+
+    return Response.json({
+      success: true,
+      orderNumber: order.orderNumber,
+      orderId: order.id,
+    });
+  } catch (error) {
+    console.error(
+      "PAYPAL COMPLETE ORDER ERROR:",
+      error
+    );
+
+    return Response.json(
+      {
+        error:
+          error instanceof Error
+            ? error.message
+            : "Unable to complete order.",
+      },
+      { status: 500 }
+    );
+  }
+}

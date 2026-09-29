@@ -1,0 +1,212 @@
+import Link from "next/link";
+
+export default function ReturnsPolicyPage() {
+  return (
+    <main className="min-h-screen bg-[#0c0b09] text-[#eee8dc]">
+      <header className="border-b border-[#332d24]">
+        <div className="mx-auto flex max-w-7xl items-center justify-between px-4 py-5 sm:px-6">
+          <Link
+            href="/"
+            className="font-serif text-xl font-bold tracking-[0.1em] text-[#d6b875] sm:text-2xl"
+          >
+            MEDIEVAL ARMORS
+          </Link>
+
+          <Link
+            href="/products"
+            className="text-[10px] font-semibold uppercase tracking-[0.18em] text-[#c7a65e]"
+          >
+            Shop
+          </Link>
+        </div>
+      </header>
+
+      <section className="border-b border-[#332d24] bg-[#12100d] px-4 py-14 sm:px-6 sm:py-18">
+        <div className="mx-auto max-w-4xl">
+          <p className="text-[10px] font-semibold uppercase tracking-[0.3em] text-[#b49458]">
+            Customer Information
+          </p>
+
+          <h1 className="mt-3 font-serif text-4xl font-bold sm:text-5xl">
+            Returns & Refunds
+          </h1>
+
+          <p className="mt-5 max-w-2xl text-sm leading-7 text-[#999184]">
+            We want you to be confident when ordering from Medieval Armors.
+            Please review the following information before placing your order.
+          </p>
+        </div>
+      </section>
+
+      <section className="mx-auto max-w-4xl px-4 py-12 sm:px-6 sm:py-16">
+        <div className="space-y-10">
+
+          <section>
+            <h2 className="font-serif text-2xl font-bold">
+              Before Requesting a Return
+            </h2>
+
+            <p className="mt-4 text-sm leading-7 text-[#999184]">
+              Please contact us before sending any product back. We will
+              provide instructions for the return and confirm whether the
+              order is eligible for a return or refund.
+            </p>
+          </section>
+
+          <section>
+            <h2 className="font-serif text-2xl font-bold">
+              Standard Products
+            </h2>
+
+            <div className="mt-4 space-y-4 text-sm leading-7 text-[#999184]">
+              <p>
+                Standard products may be eligible for return if they are
+                unused, undamaged and returned in their original condition.
+              </p>
+
+              <p>
+                Products that have been used, altered, damaged or modified
+                after delivery may not be eligible for a return.
+              </p>
+
+              <p>
+                Return eligibility may also depend on the product category and
+                the circumstances of the order. Please contact us before
+                shipping anything back.
+              </p>
+            </div>
+          </section>
+
+          <section className="border border-[#514838] bg-[#14120f] p-6 sm:p-8">
+            <p className="text-[10px] font-semibold uppercase tracking-[0.25em] text-[#b49458]">
+              Important
+            </p>
+
+            <h2 className="mt-3 font-serif text-2xl font-bold">
+              Custom-Sized Armor
+            </h2>
+
+            <div className="mt-4 space-y-4 text-sm leading-7 text-[#999184]">
+              <p>
+                Custom-sized or made-to-measure products are prepared
+                specifically according to the measurements or specifications
+                provided by the customer.
+              </p>
+
+              <p>
+                Because these products are made specifically for an individual
+                order, they may have different return or cancellation
+                conditions from standard products.
+              </p>
+
+              <p>
+                Please carefully review your measurements and order details
+                before confirming a custom order.
+              </p>
+
+              <p>
+                If you believe a custom product has been made incorrectly or
+                does not correspond to the confirmed specifications, contact
+                us as soon as possible so we can review the issue.
+              </p>
+            </div>
+          </section>
+
+          <section>
+            <h2 className="font-serif text-2xl font-bold">
+              Damaged or Incorrect Products
+            </h2>
+
+            <div className="mt-4 space-y-4 text-sm leading-7 text-[#999184]">
+              <p>
+                If your order arrives damaged or you receive an incorrect
+                product, please contact us as soon as possible after delivery.
+              </p>
+
+              <p>
+                Please include your order number and clear photographs showing
+                the condition of the package and product. This helps us
+                investigate the issue and determine the appropriate solution.
+              </p>
+            </div>
+          </section>
+
+          <section>
+            <h2 className="font-serif text-2xl font-bold">
+              Refunds
+            </h2>
+
+            <div className="mt-4 space-y-4 text-sm leading-7 text-[#999184]">
+              <p>
+                When a refund is approved, the refund will normally be
+                processed through the original payment method where possible.
+              </p>
+
+              <p>
+                The time required for the refund to appear in your account may
+                depend on your payment provider or financial institution.
+              </p>
+
+              <p>
+                Shipping charges and other fees may be non-refundable where
+                applicable.
+              </p>
+            </div>
+          </section>
+
+          <section>
+            <h2 className="font-serif text-2xl font-bold">
+              Return Shipping
+            </h2>
+
+            <p className="mt-4 text-sm leading-7 text-[#999184]">
+              Unless the return is the result of an error on our part or an
+              approved damaged-product claim, return shipping costs may be the
+              responsibility of the customer.
+            </p>
+          </section>
+
+          <section>
+            <h2 className="font-serif text-2xl font-bold">
+              Exchanges
+            </h2>
+
+            <p className="mt-4 text-sm leading-7 text-[#999184]">
+              Exchanges are not automatically guaranteed and depend on product
+              availability, condition and the circumstances of the request.
+              Please contact customer support before sending a product back.
+            </p>
+          </section>
+
+          <section>
+            <h2 className="font-serif text-2xl font-bold">
+              How to Contact Us
+            </h2>
+
+            <p className="mt-4 text-sm leading-7 text-[#999184]">
+              To request a return, report a damaged product or ask about a
+              refund, contact us with your order number and a description of
+              the issue.
+            </p>
+
+            <a
+              href="mailto:support@medievalarmors.com?subject=Return%20or%20Refund%20Request"
+              className="mt-5 inline-flex bg-[#c7a65e] px-6 py-3 text-[10px] font-bold uppercase tracking-[0.18em] text-[#17130d] transition hover:bg-[#dfc17d]"
+            >
+              Contact Support
+            </a>
+          </section>
+
+        </div>
+      </section>
+
+      <footer className="border-t border-[#332d24] px-4 py-8 text-center text-xs text-[#777064]">
+        <p>Medieval Armors</p>
+
+        <p className="mt-2">
+          Historical-inspired armor and handcrafted reproductions.
+        </p>
+      </footer>
+    </main>
+  );
+}

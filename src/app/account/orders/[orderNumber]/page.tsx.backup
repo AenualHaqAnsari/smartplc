@@ -1,0 +1,315 @@
+import Link from "next/link";
+import { redirect } from "next/navigation";
+import { prisma } from "@/lib/prisma";
+import { getCustomerId } from "@/lib/customer-auth";
+
+type Props = {
+  params: Promise<{
+    orderNumber: string;
+  }>;
+};
+
+export default async function CustomerOrderPage({
+  params,
+}: Props) {
+  const { orderNumber } = await params;
+
+  const customerId = await getCustomerId();
+
+  if (!customerId) {
+    redirect("/account/login");
+  }
+
+  const order = await prisma.order.findFirst({
+    where: {
+      orderNumber,
+      customerId,
+    },
+    include: {
+      items: true,
+      payments: {
+        orderBy: {
+          createdAt: "desc",
+        },
+        take: 1,
+      },
+      shippingAddress: true,
+    },
+  });
+
+  if (!order) {
+    return (
+      <main className="min-h-screen bg-[#0c0b09] text-[#eee8dc]">
+        <header className="border-b border-[#332d24]">
+          <div className="mx-auto flex max-w-7xl items-center justify-between px-6 py-5">
+            <Link
+              href="/"
+              className="font-serif text-2xl font-bold tracking-[0.12em] text-[#d6b875]"
+            >
+              MEDIEVAL ARMORS
+            </Link>
+
+            <Link
+              href="/account"
+              className="text-sm uppercase tracking-[0.15em] text-[#c7a65e]"
+            >
+              My Account
+            </Link>
+          </div>
+        </header>
+
+        <section className="mx-auto max-w-3xl px-6 py-20 text-center">
+          <p className="text-xs uppercase tracking-[0.35em] text-[#b49458]">
+            Customer Account
+          </p>
+
+          <h1 className="mt-3 font-serif text-5xl font-bold">
+            ORDER NOT FOUND
+          </h1>
+
+          <p className="mt-5 text-[#8f877b]">
+            This order could not be found in your account.
+          </p>
+
+          <Link
+            href="/account"
+            className="mt-8 inline-block bg-[#c7a65e] px-8 py-4 text-sm font-bold uppercase tracking-[0.2em] text-[#17130d]"
+          >
+            Back to Account
+          </Link>
+        </section>
+      </main>
+    );
+  }
+
+  const payment = order.payments[0];
+
+  return (
+    <main className="min-h-screen bg-[#0c0b09] text-[#eee8dc]">
+      <header className="border-b border-[#332d24]">
+        <div className="mx-auto flex max-w-7xl items-center justify-between px-6 py-5">
+          <Link
+            href="/"
+            className="font-serif text-2xl font-bold tracking-[0.12em] text-[#d6b875]"
+          >
+            MEDIEVAL ARMORS
+          </Link>
+
+          <Link
+            href="/account"
+            className="text-sm uppercase tracking-[0.15em] text-[#c7a65e]"
+          >
+            My Account
+          </Link>
+        </div>
+      </header>
+
+      <section className="mx-auto max-w-4xl px-6 py-20">
+        <p className="text-xs uppercase tracking-[0.35em] text-[#b49458]">
+          Order Details
+        </p>
+
+        <h1 className="mt-3 font-serif text-5xl font-bold">
+          {order.orderNumber}
+        </h1>
+
+        <p className="mt-4 text-sm text-[#777064]">
+          Placed on{" "}
+          {order.createdAt.toLocaleDateString()}
+        </p>
+
+        {/* Status */}
+        <div className="mt-8 grid gap-4 sm:grid-cols-2">
+          <div className="border border-[#3a342a] bg-[#12100d] p-6">
+            <p className="text-xs uppercase tracking-[0.2em] text-[#777064]">
+              Order Status
+            </p>
+
+            <p className="mt-2 text-lg font-semibold text-[#c7a65e]">
+              {order.status}
+            </p>
+          </div>
+
+          <div className="border border-[#3a342a] bg-[#12100d] p-6">
+            <p className="text-xs uppercase tracking-[0.2em] text-[#777064]">
+              Payment Status
+            </p>
+
+            <p
+              className={
+                order.paymentStatus === "PAID"
+                  ? "mt-2 text-lg font-semibold text-[#c7a65e]"
+                  : "mt-2 text-lg font-semibold text-[#d79b8d]"
+              }
+            >
+              {order.paymentStatus}
+            </p>
+          </div>
+        </div>
+
+        {/* Items */}
+        <section className="mt-8 border border-[#3a342a] bg-[#12100d] p-7">
+          <p className="text-xs uppercase tracking-[0.25em] text-[#b49458]">
+            Items
+          </p>
+
+          <div className="mt-6 space-y-5">
+            {order.items.map((item) => (
+              <div
+                key={item.id}
+                className="flex justify-between gap-5 border-b border-[#332d24] pb-5 last:border-0 last:pb-0"
+              >
+                <div>
+                  <p className="font-serif text-lg font-semibold">
+                    {item.productName}
+                  </p>
+
+                  <p className="mt-1 text-xs text-[#777064]">
+                    Quantity: {item.quantity}
+                  </p>
+
+                  {item.customSize && (
+                    <p className="mt-1 text-xs text-[#c7a65e]">
+                      Custom Size
+                    </p>
+                  )}
+                </div>
+
+                <p className="shrink-0 text-lg font-semibold text-[#c7a65e]">
+                  ${Number(item.totalPrice).toFixed(2)}
+                </p>
+              </div>
+            ))}
+          </div>
+        </section>
+
+        {/* Shipping Address */}
+        {order.shippingAddress && (
+          <section className="mt-8 border border-[#3a342a] bg-[#12100d] p-7">
+            <p className="text-xs uppercase tracking-[0.25em] text-[#b49458]">
+              Shipping Address
+            </p>
+
+            <div className="mt-5 leading-7 text-[#b8b0a2]">
+              <p className="font-semibold text-[#eee8dc]">
+                {order.shippingAddress.firstName}{" "}
+                {order.shippingAddress.lastName}
+              </p>
+
+              <p>{order.shippingAddress.address1}</p>
+
+              {order.shippingAddress.address2 && (
+                <p>{order.shippingAddress.address2}</p>
+              )}
+
+              <p>
+                {order.shippingAddress.city},{" "}
+                {order.shippingAddress.state}
+              </p>
+
+              <p>
+                {order.shippingAddress.postalCode}
+              </p>
+
+              <p>{order.shippingAddress.country}</p>
+            </div>
+          </section>
+        )}
+
+        {/* Totals */}
+        <section className="mt-8 border border-[#3a342a] bg-[#12100d] p-7">
+          <p className="text-xs uppercase tracking-[0.25em] text-[#b49458]">
+            Order Summary
+          </p>
+
+          <div className="mt-6 space-y-4 text-sm">
+            <div className="flex justify-between text-[#999184]">
+              <span>Subtotal</span>
+              <span>
+                ${Number(order.subtotal).toFixed(2)}
+              </span>
+            </div>
+
+            <div className="flex justify-between text-[#999184]">
+              <span>Shipping</span>
+              <span>
+                ${Number(order.shippingCost).toFixed(2)}
+              </span>
+            </div>
+
+            <div className="flex justify-between text-[#999184]">
+              <span>Discount</span>
+              <span>
+                -${Number(order.discount).toFixed(2)}
+              </span>
+            </div>
+
+            <div className="flex justify-between text-[#999184]">
+              <span>Tax</span>
+              <span>
+                ${Number(order.tax).toFixed(2)}
+              </span>
+            </div>
+
+            <div className="mt-5 flex justify-between border-t border-[#332d24] pt-5">
+              <strong className="font-serif text-xl">
+                Total
+              </strong>
+
+              <strong className="text-2xl text-[#c7a65e]">
+                ${Number(order.total).toFixed(2)}
+              </strong>
+            </div>
+          </div>
+        </section>
+
+        {/* Payment */}
+        {payment && (
+          <section className="mt-8 border border-[#3a342a] bg-[#12100d] p-7">
+            <p className="text-xs uppercase tracking-[0.25em] text-[#b49458]">
+              Payment
+            </p>
+
+            <div className="mt-5 space-y-4">
+              <div className="flex justify-between gap-5">
+                <span className="text-sm text-[#777064]">
+                  Provider
+                </span>
+
+                <span className="text-sm">
+                  {payment.provider}
+                </span>
+              </div>
+
+              <div className="flex justify-between gap-5">
+                <span className="text-sm text-[#777064]">
+                  Transaction ID
+                </span>
+
+                <span className="break-all text-right text-sm text-[#c7a65e]">
+                  {payment.transactionId}
+                </span>
+              </div>
+            </div>
+          </section>
+        )}
+
+        <div className="mt-8 flex flex-col gap-4 sm:flex-row">
+          <Link
+            href="/account"
+            className="border border-[#514838] px-8 py-4 text-center text-sm font-bold uppercase tracking-[0.2em] hover:border-[#c7a65e]"
+          >
+            Back to Account
+          </Link>
+
+          <Link
+            href="/products"
+            className="bg-[#c7a65e] px-8 py-4 text-center text-sm font-bold uppercase tracking-[0.2em] text-[#17130d]"
+          >
+            Continue Shopping
+          </Link>
+        </div>
+      </section>
+    </main>
+  );
+}

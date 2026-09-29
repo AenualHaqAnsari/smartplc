@@ -1,0 +1,193 @@
+﻿import Link from "next/link";
+import { prisma } from "@/lib/prisma";
+import StoreHeader from "@/components/layout/StoreHeader";
+import SiteFooter from "@/components/site/SiteFooter";
+
+type ProductsPageProps = {
+  searchParams: Promise<{
+    category?: string;
+  }>;
+};
+
+export default async function ProductsPage({
+  searchParams,
+}: ProductsPageProps) {
+  const { category } = await searchParams;
+  const products = await prisma.product.findMany({
+    where: {
+  status: "ACTIVE",
+  ...(category
+    ? {
+        category: {
+          slug: category,
+        },
+      }
+    : {}),
+},
+    include: {
+      category: true,
+      images: {
+        where: {
+          isPrimary: true,
+        },
+        take: 1,
+      },
+      variants: {
+        orderBy: {
+          price: "asc",
+        },
+        take: 1,
+      },
+    },
+    orderBy: {
+      createdAt: "desc",
+    },
+  });
+
+  return (
+    <main className="min-h-screen bg-[#f7f3ea] text-[#242321]">
+      <StoreHeader />
+
+      <section className="mx-auto max-w-7xl px-6 py-20">
+        <p className="text-xs uppercase tracking-[0.35em] text-[#b49458]">
+          The Collection
+        </p>
+
+        <h1 className="mt-3 font-serif text-5xl font-bold">
+  {category
+    ? category.replace("-", " ").toUpperCase()
+    : "ALL ARMOR"}
+</h1>
+
+        <p className="mt-5 max-w-2xl text-[#999184]">
+          Explore our collection of handcrafted medieval armor,
+          helmets, shields and historical reproductions.
+        </p>
+        <div className="mt-8 flex flex-wrap gap-3">
+  <Link
+    href="/products"
+    className={`border px-5 py-3 text-xs font-bold uppercase tracking-[0.15em] transition ${
+      !category
+        ? "border-[#c7a65e] bg-[#c7a65e] text-[#17130d]"
+        : "border-[#514838] text-[#c7a65e] hover:border-[#c7a65e]"
+    }`}
+  >
+    All Armor
+  </Link>
+
+  <Link
+    href="/products?category=full-armor"
+    className={`border px-5 py-3 text-xs font-bold uppercase tracking-[0.15em] transition ${
+      category === "full-armor"
+        ? "border-[#c7a65e] bg-[#c7a65e] text-[#17130d]"
+        : "border-[#514838] text-[#c7a65e] hover:border-[#c7a65e]"
+    }`}
+  >
+    Full Armor
+  </Link>
+
+  <Link
+    href="/products?category=helmets"
+    className={`border px-5 py-3 text-xs font-bold uppercase tracking-[0.15em] transition ${
+      category === "helmets"
+        ? "border-[#c7a65e] bg-[#c7a65e] text-[#17130d]"
+        : "border-[#514838] text-[#c7a65e] hover:border-[#c7a65e]"
+    }`}
+  >
+    Helmets
+  </Link>
+
+  <Link
+    href="/products?category=shields"
+    className={`border px-5 py-3 text-xs font-bold uppercase tracking-[0.15em] transition ${
+      category === "shields"
+        ? "border-[#c7a65e] bg-[#c7a65e] text-[#17130d]"
+        : "border-[#514838] text-[#c7a65e] hover:border-[#c7a65e]"
+    }`}
+  >
+    Shields
+  </Link>
+
+  <Link
+    href="/products?category=gauntlets"
+    className={`border px-5 py-3 text-xs font-bold uppercase tracking-[0.15em] transition ${
+      category === "gauntlets"
+        ? "border-[#c7a65e] bg-[#c7a65e] text-[#17130d]"
+        : "border-[#514838] text-[#c7a65e] hover:border-[#c7a65e]"
+    }`}
+  >
+    Gauntlets
+  </Link>
+</div>
+
+        {products.length === 0 ? (
+          <div className="mt-12 border border-[#3a342a] bg-[#12100d] p-10 text-center">
+            <p className="text-[#999184]">
+              No products are currently available.
+            </p>
+          </div>
+        ) : (
+          <div className="mt-12 grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
+            {products.map((product) => {
+              const image = product.images[0];
+              const price =
+                product.variants[0]?.price ??
+                product.basePrice;
+
+              return (
+                <Link
+                  key={product.id}
+                  href={`/products/${product.slug}`}
+                  className="group block"
+                >
+                  <div className="relative aspect-[4/5] overflow-hidden bg-[#191714]">
+                    {image ? (
+                      <img
+                        src={image.url}
+                        alt={
+                          image.altText ||
+                          product.name
+                        }
+                        className="h-full w-full object-cover transition duration-700 group-hover:scale-105"
+                      />
+                    ) : (
+                      <div className="flex h-full items-center justify-center">
+                        <span className="font-serif text-2xl text-[#4d463b]">
+                          MEDIEVAL ARMORS
+                        </span>
+                      </div>
+                    )}
+
+                    {product.featured && (
+                      <div className="absolute left-4 top-4 border border-[#6b5b3e] bg-[#0c0b09]/90 px-3 py-1 text-[10px] uppercase tracking-[0.2em] text-[#c7a65e]">
+                        Featured
+                      </div>
+                    )}
+                  </div>
+
+                  <div className="pt-5">
+                    <p className="text-xs uppercase tracking-[0.2em] text-[#8e8578]">
+                      {product.category.name}
+                    </p>
+
+                    <h2 className="mt-2 font-serif text-xl font-semibold group-hover:text-[#d6b875]">
+                      {product.name}
+                    </h2>
+
+                    <p className="mt-3 text-lg font-semibold text-[#c7a65e]">
+                      $
+                      {Number(price).toFixed(2)}
+                    </p>
+                  </div>
+                </Link>
+              );
+            })}
+          </div>
+        )}
+      </section>
+      <SiteFooter />
+    </main>
+  );
+}
+
+

@@ -1,0 +1,230 @@
+import Link from "next/link";
+
+export default function ContactPage() {
+  return (
+    <main className="min-h-screen bg-[#0c0b09] text-[#eee8dc]">
+      <header className="border-b border-[#332d24]">
+        <div className="mx-auto flex max-w-7xl items-center justify-between px-4 py-5 sm:px-6">
+          <Link
+            href="/"
+            className="font-serif text-xl font-bold tracking-[0.1em] text-[#d6b875] sm:text-2xl"
+          >
+            MEDIEVAL ARMORS
+          </Link>
+
+          <Link
+            href="/products"
+            className="text-[10px] font-semibold uppercase tracking-[0.18em] text-[#c7a65e]"
+          >
+            Shop
+          </Link>
+        </div>
+      </header>
+
+      <section className="border-b border-[#332d24] bg-[#12100d] px-4 py-14 sm:px-6 sm:py-18">
+        <div className="mx-auto max-w-5xl">
+          <p className="text-[10px] font-semibold uppercase tracking-[0.3em] text-[#b49458]">
+            Customer Support
+          </p>
+
+          <h1 className="mt-3 font-serif text-4xl font-bold sm:text-5xl">
+            Contact Us
+          </h1>
+
+          <p className="mt-5 max-w-2xl text-sm leading-7 text-[#999184] sm:text-base">
+            Have a question about a product, order, custom sizing or shipping?
+            Our support team is here to help.
+          </p>
+        </div>
+      </section>
+
+      <section className="mx-auto max-w-5xl px-4 py-12 sm:px-6 sm:py-16">
+        <div className="grid gap-6 md:grid-cols-3">
+
+          <div className="border border-[#332d24] bg-[#12100d] p-6 sm:p-7">
+            <p className="text-[10px] font-semibold uppercase tracking-[0.25em] text-[#b49458]">
+              Customer Support
+            </p>
+
+            <h2 className="mt-3 font-serif text-xl font-bold">
+              General Questions
+            </h2>
+
+            <p className="mt-3 text-sm leading-6 text-[#999184]">
+              Ask us about products, availability, sizing, orders or anything
+              else related to your purchase.
+            </p>
+
+            <a
+              href="mailto:support@medievalarmors.com"
+              className="mt-5 block text-sm text-[#c7a65e] hover:text-[#dfc17d]"
+            >
+              support@medievalarmors.com
+            </a>
+          </div>
+
+          <div className="border border-[#332d24] bg-[#12100d] p-6 sm:p-7">
+            <p className="text-[10px] font-semibold uppercase tracking-[0.25em] text-[#b49458]">
+              Orders
+            </p>
+
+            <h2 className="mt-3 font-serif text-xl font-bold">
+              Order Assistance
+            </h2>
+
+            <p className="mt-3 text-sm leading-6 text-[#999184]">
+              For questions about an existing order, please include your order
+              number so we can locate your order quickly.
+            </p>
+
+            <a
+              href="mailto:support@medievalarmors.com?subject=Order%20Support"
+              className="mt-5 inline-flex bg-[#c7a65e] px-5 py-2.5 text-[10px] font-bold uppercase tracking-[0.15em] text-[#17130d] hover:bg-[#dfc17d]"
+            >
+              Contact About Order
+            </a>
+          </div>
+
+          <div className="border border-[#332d24] bg-[#12100d] p-6 sm:p-7">
+            <p className="text-[10px] font-semibold uppercase tracking-[0.25em] text-[#b49458]">
+              Custom Products
+            </p>
+
+            <h2 className="mt-3 font-serif text-xl font-bold">
+              Custom Sizing
+            </h2>
+
+            <p className="mt-3 text-sm leading-6 text-[#999184]">
+              Need help with measurements or a custom-size product? Contact us
+              before placing your order whenever possible.
+            </p>
+
+            <a
+              href="mailto:support@medievalarmors.com?subject=Custom%20Sizing%20Question"
+              className="mt-5 inline-flex text-[10px] font-semibold uppercase tracking-[0.15em] text-[#c7a65e] hover:text-[#dfc17d]"
+            >
+              Ask About Custom Sizing
+            </a>
+          </div>
+
+        </div>
+
+        <div className="mt-10 grid gap-8 md:grid-cols-2">
+
+          <div className="border border-[#332d24] bg-[#14120f] p-7 sm:p-9">
+            <p className="text-[10px] font-semibold uppercase tracking-[0.25em] text-[#b49458]">
+              Before Contacting Us
+            </p>
+
+            <h2 className="mt-3 font-serif text-2xl font-bold">
+              Helpful Information
+            </h2>
+
+            <ul className="mt-6 space-y-4 text-sm leading-6 text-[#999184]">
+              <li className="border-b border-[#332d24] pb-4">
+                <strong className="text-[#eee8dc]">
+                  Existing Order
+                </strong>
+                <br />
+                Include your order number in your message.
+              </li>
+
+              <li className="border-b border-[#332d24] pb-4">
+                <strong className="text-[#eee8dc]">
+                  Product Question
+                </strong>
+                <br />
+                Include the product name or product page whenever possible.
+              </li>
+
+              <li>
+                <strong className="text-[#eee8dc]">
+                  Damaged Delivery
+                </strong>
+                <br />
+                Include photographs of the package and product.
+              </li>
+            </ul>
+          </div>
+
+          <div className="border border-[#332d24] bg-[#14120f] p-7 sm:p-9">
+            <p className="text-[10px] font-semibold uppercase tracking-[0.25em] text-[#b49458]">
+              Self Service
+            </p>
+
+            <h2 className="mt-3 font-serif text-2xl font-bold">
+              Find Answers Quickly
+            </h2>
+
+            <p className="mt-4 text-sm leading-7 text-[#999184]">
+              You can also review our customer information pages for answers
+              about shipping, returns, cancellations and other common
+              questions.
+            </p>
+
+            <div className="mt-6 space-y-3">
+              <Link
+                href="/faq"
+                className="block border border-[#332d24] px-5 py-3 text-[10px] font-semibold uppercase tracking-[0.16em] text-[#c7a65e] hover:bg-[#1a1712]"
+              >
+                Frequently Asked Questions
+              </Link>
+
+              <Link
+                href="/policies/shipping"
+                className="block border border-[#332d24] px-5 py-3 text-[10px] font-semibold uppercase tracking-[0.16em] text-[#c7a65e] hover:bg-[#1a1712]"
+              >
+                Shipping Policy
+              </Link>
+
+              <Link
+                href="/policies/returns"
+                className="block border border-[#332d24] px-5 py-3 text-[10px] font-semibold uppercase tracking-[0.16em] text-[#c7a65e] hover:bg-[#1a1712]"
+              >
+                Returns & Refunds
+              </Link>
+
+              <Link
+                href="/policies/cancellation"
+                className="block border border-[#332d24] px-5 py-3 text-[10px] font-semibold uppercase tracking-[0.16em] text-[#c7a65e] hover:bg-[#1a1712]"
+              >
+                Cancellation Policy
+              </Link>
+            </div>
+          </div>
+
+        </div>
+
+        <div className="mt-10 border border-[#514838] bg-[#14120f] p-7 text-center sm:p-10">
+          <p className="text-[10px] font-semibold uppercase tracking-[0.3em] text-[#b49458]">
+            Need Assistance?
+          </p>
+
+          <h2 className="mt-3 font-serif text-3xl font-bold">
+            Send Us a Message
+          </h2>
+
+          <p className="mx-auto mt-4 max-w-xl text-sm leading-7 text-[#999184]">
+            Email our support team and we&apos;ll review your request and get
+            back to you.
+          </p>
+
+          <a
+            href="mailto:support@medievalarmors.com?subject=Customer%20Support"
+            className="mt-7 inline-flex bg-[#c7a65e] px-8 py-3.5 text-[10px] font-bold uppercase tracking-[0.18em] text-[#17130d] transition hover:bg-[#dfc17d]"
+          >
+            Email Customer Support
+          </a>
+        </div>
+      </section>
+
+      <footer className="border-t border-[#332d24] px-4 py-8 text-center text-xs text-[#777064]">
+        <p>Medieval Armors</p>
+
+        <p className="mt-2">
+          Historical-inspired armor and handcrafted reproductions.
+        </p>
+      </footer>
+    </main>
+  );
+}
