@@ -2,7 +2,7 @@ export const dynamic = "force-dynamic";
 import type { MetadataRoute } from "next";
 import { prisma } from "@/lib/prisma";
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
- const siteUrl=(process.env.NEXT_PUBLIC_SITE_URL||"").replace(/\/$/,"");
+ const siteUrl=(process.env.NEXT_PUBLIC_SITE_URL||"https://smartplcsolutions.com").replace(/\/$/,"");
  const [categories,products]=await Promise.all([
   prisma.category.findMany({where:{active:true},select:{slug:true,updatedAt:true}}),
   prisma.product.findMany({where:{status:"ACTIVE"},select:{slug:true,updatedAt:true}}),

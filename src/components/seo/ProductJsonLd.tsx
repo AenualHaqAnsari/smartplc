@@ -43,7 +43,7 @@ export default function ProductJsonLd({
   reviews = [],
   slug,
 }: ProductJsonLdProps) {
-  const siteUrl = (process.env.NEXT_PUBLIC_SITE_URL || "").replace(/\/$/, "");
+  const siteUrl = (process.env.NEXT_PUBLIC_SITE_URL || "https://smartplcsolutions.com").replace(/\/$/, "");
   const validVariants = variants.filter(
     (variant) =>
       Number.isFinite(Number(variant.price)) &&
