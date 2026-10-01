@@ -219,25 +219,21 @@ export async function generateMetadata({
         `${process.env.NEXT_PUBLIC_SITE_URL || ""}/products/${slug}`,
       locale: "en_US",
 
-      images: primaryImageUrl
-        ? [
-            {
-              url: primaryImageUrl,
-              alt:
-                primaryImage?.altText ||
-                product.name,
-            },
-          ]
-        : undefined,
+      images: [
+        {
+          url: primaryImageUrl || "/og-smart-plc.png",
+          alt: primaryImageUrl
+            ? primaryImage?.altText || product.name
+            : "Smart PLC Solutions — industrial automation products and services",
+        },
+      ],
     },
 
     twitter: {
       card: "summary_large_image",
       title,
       description,
-      images: primaryImageUrl
-        ? [primaryImageUrl]
-        : undefined,
+      images: [primaryImageUrl || "/og-smart-plc.png"],
     },
   };
 }

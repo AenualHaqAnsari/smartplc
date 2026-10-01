@@ -86,22 +86,20 @@ export async function generateMetadata({
       description,
       type: "website",
       siteName: "Industrial Automation",
-      images: categoryData.image
-        ? [
-            {
-              url: categoryData.image,
-              alt: categoryData.name,
-            },
-          ]
-        : undefined,
+      images: [
+        {
+          url: categoryData.image || "/og-smart-plc.png",
+          alt: categoryData.image
+            ? categoryData.name
+            : "Smart PLC Solutions — industrial automation products and services",
+        },
+      ],
     },
     twitter: {
       card: "summary_large_image",
       title,
       description,
-      images: categoryData.image
-        ? [categoryData.image]
-        : undefined,
+      images: [categoryData.image || "/og-smart-plc.png"],
     },
   };
 }

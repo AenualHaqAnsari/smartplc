@@ -14,7 +14,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   if (!category?.active) return { title: "Product Category | Industrial Automation" };
   const title = `${category.name} | Industrial Automation Products`;
   const description = category.description || `Browse ${category.name.toLowerCase()} for industrial automation applications. Contact us to confirm product specifications and availability.`;
-  return { title, description, alternates: { canonical: `/products/category/${slug}` }, openGraph: { title, description, type: "website", siteName: "Industrial Automation" }, twitter: { card: "summary", title, description } };
+  return { title, description, alternates: { canonical: `/products/category/${slug}` }, openGraph: { title, description, type: "website", siteName: "Smart PLC Solutions", images: [{ url: "/og-smart-plc.png", width: 1200, height: 630, alt: "Smart PLC Solutions — industrial automation products and services" }] }, twitter: { card: "summary_large_image", title, description, images: ["/og-smart-plc.png"] } };
 }
 
 export default async function CategoryPage({ params }: Props) {

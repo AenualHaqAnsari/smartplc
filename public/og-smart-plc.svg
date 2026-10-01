@@ -1,0 +1,40 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="630" viewBox="0 0 1200 630" fill="none">
+  <defs>
+    <linearGradient id="bg" x1="70" y1="40" x2="1090" y2="640" gradientUnits="userSpaceOnUse"><stop stop-color="#102337"/><stop offset="1" stop-color="#07121e"/></linearGradient>
+    <linearGradient id="panel" x1="730" y1="110" x2="1080" y2="540" gradientUnits="userSpaceOnUse"><stop stop-color="#f1f6fa"/><stop offset="1" stop-color="#9cabb8"/></linearGradient>
+    <pattern id="grid" width="48" height="48" patternUnits="userSpaceOnUse"><path d="M48 0H0v48" stroke="#8bb5cb" stroke-opacity=".08"/></pattern>
+  </defs>
+  <path fill="url(#bg)" d="M0 0h1200v630H0z"/><path fill="url(#grid)" d="M0 0h1200v630H0z"/>
+  <path d="M0 530h570M0 552h460M820 56h380M890 78h310" stroke="#35b8db" stroke-opacity=".22" stroke-width="2"/>
+  <circle cx="924" cy="317" r="244" fill="#13749a" fill-opacity=".11"/>
+  <text x="88" y="203" fill="#5bd3ee" font-family="Arial,sans-serif" font-size="18" font-weight="700" letter-spacing="5">INDUSTRIAL AUTOMATION</text>
+  <text x="84" y="285" fill="#fff" font-family="Arial,sans-serif" font-size="56" font-weight="700">Smart PLC</text>
+  <text x="84" y="351" fill="#fff" font-family="Arial,sans-serif" font-size="56" font-weight="700">Solutions</text>
+  <path d="M88 383h95" stroke="#47c6e4" stroke-width="5"/>
+  <text x="88" y="432" fill="#d4e3ec" font-family="Arial,sans-serif" font-size="23">Products &amp; engineering services</text>
+  <text x="88" y="467" fill="#d4e3ec" font-family="Arial,sans-serif" font-size="23">for PLC, HMI, SCADA &amp; control</text>
+  <text x="88" y="502" fill="#d4e3ec" font-family="Arial,sans-serif" font-size="23">systems.</text>
+  <g transform="translate(699 87)">
+    <path d="m28 42 343-22 43 32v370l-349 25-37-30V42Z" fill="url(#panel)" stroke="#fff" stroke-width="4"/>
+    <path d="m58 66 236-13v343l-236 16V66Z" fill="#cbd5de" stroke="#8193a2" stroke-width="3"/>
+    <path d="m74 88 202-11v103L74 191V88Z" fill="#102337" stroke="#6d8192" stroke-width="4"/>
+    <rect x="88" y="103" width="172" height="72" rx="3" fill="#183c55"/>
+    <path d="M101 158h23v-18h24v18h22v-37h24v37h21v-47h24v47h15" stroke="#45c7dc" stroke-width="4"/>
+    <circle cx="235" cy="121" r="7" fill="#7bf0aa"/>
+    <path d="m74 211 202-9v160l-202 13V211Z" fill="#273746" stroke="#708293" stroke-width="4"/>
+    <rect x="93" y="231" width="46" height="43" rx="3" fill="#152230" stroke="#627587" stroke-width="3"/>
+    <rect x="152" y="228" width="46" height="43" rx="3" fill="#152230" stroke="#627587" stroke-width="3"/>
+    <rect x="211" y="225" width="46" height="43" rx="3" fill="#152230" stroke="#627587" stroke-width="3"/>
+    <circle cx="116" cy="303" r="10" fill="#1685c1"/><circle cx="175" cy="300" r="10" fill="#f7c948"/><circle cx="234" cy="297" r="10" fill="#db5965"/>
+    <path d="m101 338 145-9m-145 25 105-6" stroke="#a6bac8" stroke-width="4"/>
+    <path d="M294 67h88v337l-88 6V67Z" fill="#aab8c4" stroke="#8193a2" stroke-width="3"/>
+    <rect x="312" y="94" width="52" height="91" rx="5" fill="#394b5a"/>
+    <circle cx="338" cy="116" r="8" fill="#63d471"/><circle cx="338" cy="148" r="8" fill="#e0a33c"/>
+    <path d="M309 217h57m-57 18h57m-57 18h57m-57 18h57m-57 18h57" stroke="#718492" stroke-width="5"/>
+    <rect x="313" y="317" width="48" height="61" rx="4" fill="#253747"/><circle cx="337" cy="333" r="6" fill="#38bdf8"/>
+    <path d="M321 350h31m-31 10h31" stroke="#94a3b8" stroke-width="3"/>
+    <path d="M8 458h432" stroke="#47c6e4" stroke-opacity=".8" stroke-width="3"/>
+    <circle cx="28" cy="458" r="7" fill="#47c6e4"/><circle cx="420" cy="458" r="7" fill="#47c6e4"/>
+  </g>
+  <path d="M628 113v400m-18-360h18m-18 72h18m-18 72h18m-18 72h18m-18 72h18" stroke="#47c6e4" stroke-opacity=".3" stroke-width="2"/>
+</svg>
