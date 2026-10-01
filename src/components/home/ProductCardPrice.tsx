@@ -78,11 +78,17 @@ export default function ProductCardPrice({
   };
   const discountRate = discountByCountry[country] ?? discounts.discountEverywhere;
   const discountedPrice = priceUSD * (1 - discountRate / 100);
+  // Compare-at is only meaningful when it is higher than the price shown
+  // after the country discount. Avoid displaying the same amount twice.
+  const showCompareAtPrice =
+    compareAtPriceUSD !== null &&
+    Number.isFinite(compareAtPriceUSD) &&
+    compareAtPriceUSD > discountedPrice + 0.009;
 
   return (
     <div className="mt-3">
       <p className="font-bold text-sky-700">{formatCurrency(discountedPrice, currency, rates)}</p>
-      {compareAtPriceUSD !== null && (
+      {showCompareAtPrice && (
         <p className="mt-0.5 text-sm font-normal text-slate-500 line-through">
           {formatCurrency(compareAtPriceUSD, currency, rates)}
         </p>

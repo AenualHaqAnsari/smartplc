@@ -10,7 +10,23 @@ This guide deploys the Next.js app on an Ubuntu server with Node.js, PostgreSQL,
 
 ## 2. Install the application
 
-Use `/srv/smartplcsolutions` as the release directory (or adjust the paths below). Copy the project contents from `medieval-armors/` to the server, excluding `.env`, `.next`, `node_modules`, and local backups. Keep uploaded product images in persistent storage: the admin image uploader writes under `public/uploads/products/`, so preserve that directory across releases and include it in backups.
+Use `/srv/smartplcsolutions` as the application directory (or adjust the paths below). Copy the project contents from `medieval-armors/` to the server, excluding `.env`, `.next`, `node_modules`, and local backups. Product image URLs are stored in PostgreSQL as `/uploads/products/...`; their files must remain at the matching path on every release. The uploader supports and preserves JPG, PNG, WebP, AVIF, and GIF, so a file-extension conversion is not needed for normal browsers. Missing images after publishing usually mean the upload directory was omitted or replaced during deployment.
+
+For deployments that replace the application directory, keep uploads in a persistent shared directory and link it into the app before starting the service. For example, on the first setup:
+
+```sh
+sudo mkdir -p /srv/smartplcsolutions-shared/uploads/products
+sudo chown -R smartplc:smartplc /srv/smartplcsolutions-shared/uploads
+```
+
+For each release, copy existing uploads into the shared directory once if needed, then create the link (use the actual release directory):
+
+```sh
+mkdir -p /srv/smartplcsolutions/public
+ln -sfn /srv/smartplcsolutions-shared/uploads /srv/smartplcsolutions/public/uploads
+```
+
+Back up `/srv/smartplcsolutions-shared/uploads` along with PostgreSQL. If uploads were not preserved on the server, restore them from the previous release or a backup; the database only contains their URLs, not the image bytes.
 
 ```sh
 cd /srv/smartplcsolutions
