@@ -265,6 +265,7 @@ const router = useRouter();
     "UNITED KINGDOM":
       discountSettings.discountUnitedKingdom,
     UK: discountSettings.discountUnitedKingdom,
+    GB: discountSettings.discountUnitedKingdom,
 
     GERMANY: discountSettings.discountGermany,
     FRANCE: discountSettings.discountFrance,
@@ -279,8 +280,10 @@ const router = useRouter();
     USA: discountSettings.discountUnitedStates,
   };
 
+  const currencyCountry = currency === "INR" ? "IN" : currency === "GBP" ? "GB" : "";
+  const pricingCountry = normalizedCustomerCountry || currencyCountry;
   const discountRate =
-    countryDiscountMap[normalizedCustomerCountry] ??
+    countryDiscountMap[pricingCountry] ??
     discountSettings.discountEverywhere;
 
   const displayPrice =
@@ -289,6 +292,10 @@ const router = useRouter();
   const displayCompareAtPrice = selectedVariant
     ? selectedVariant.compareAtPrice
     : product.compareAtPrice;
+  const originalPrice = displayCompareAtPrice
+    ? Math.max(price, Number(displayCompareAtPrice))
+    : price;
+  const hasDiscount = displayPrice < originalPrice - 0.009;
 
 
   function handleVariantChange(variantId: string) {
@@ -749,6 +756,15 @@ variantName:
             {/* Price */}
 
             <div className="mt-6">
+              {hasDiscount && (
+                <div className="mt-1 text-base font-normal text-[#475569] line-through">
+                  {formatCurrency(
+                    originalPrice,
+                    currency,
+                    rates
+                  )}
+                </div>
+              )}
               <div className="text-3xl font-semibold text-[#0877b9]">
                 {formatCurrency(
                   displayPrice,
@@ -757,13 +773,9 @@ variantName:
                 )}
               </div>
 
-              {displayCompareAtPrice && (
+              {!hasDiscount && displayCompareAtPrice && originalPrice > price + 0.009 && (
                 <div className="mt-1 text-base font-normal text-[#475569] line-through">
-                  {formatCurrency(
-                    Number(displayCompareAtPrice),
-                    currency,
-                    rates
-                  )}
+                  {formatCurrency(originalPrice, currency, rates)}
                 </div>
               )}
             </div>

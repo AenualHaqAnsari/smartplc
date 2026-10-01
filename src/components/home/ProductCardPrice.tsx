@@ -69,28 +69,37 @@ export default function ProductCardPrice({
 
   const discountByCountry: Record<string, number> = {
     INDIA: discounts.discountIndia, IN: discounts.discountIndia,
-    "UNITED KINGDOM": discounts.discountUnitedKingdom, UK: discounts.discountUnitedKingdom,
+    "UNITED KINGDOM": discounts.discountUnitedKingdom, UK: discounts.discountUnitedKingdom, GB: discounts.discountUnitedKingdom,
     GERMANY: discounts.discountGermany, FRANCE: discounts.discountFrance,
     ITALY: discounts.discountItaly, BELGIUM: discounts.discountBelgium,
     SPAIN: discounts.discountSpain, SWITZERLAND: discounts.discountSwitzerland,
     "UNITED STATES": discounts.discountUnitedStates, US: discounts.discountUnitedStates,
     USA: discounts.discountUnitedStates,
   };
-  const discountRate = discountByCountry[country] ?? discounts.discountEverywhere;
+  // For signed-out shoppers use the selected currency as the best available
+  // country hint (INR → India, GBP → UK). USD keeps the global rate.
+  const currencyCountry = currency === "INR" ? "IN" : currency === "GBP" ? "GB" : "";
+  const pricingCountry = country || currencyCountry;
+  const discountRate = discountByCountry[pricingCountry] ?? discounts.discountEverywhere;
   const discountedPrice = priceUSD * (1 - discountRate / 100);
-  // Compare-at is only meaningful when it is higher than the price shown
-  // after the country discount. Avoid displaying the same amount twice.
-  const showCompareAtPrice =
-    compareAtPriceUSD !== null &&
-    Number.isFinite(compareAtPriceUSD) &&
-    compareAtPriceUSD > discountedPrice + 0.009;
+  const originalPrice =
+    compareAtPriceUSD !== null && Number.isFinite(compareAtPriceUSD)
+      ? Math.max(priceUSD, compareAtPriceUSD)
+      : priceUSD;
+  const hasDiscount = discountedPrice < originalPrice - 0.009;
+  const hasCompareAt = originalPrice > priceUSD + 0.009;
 
   return (
     <div className="mt-3">
-      <p className="font-bold text-sky-700">{formatCurrency(discountedPrice, currency, rates)}</p>
-      {showCompareAtPrice && (
+      {hasDiscount && (
         <p className="mt-0.5 text-sm font-normal text-slate-500 line-through">
-          {formatCurrency(compareAtPriceUSD, currency, rates)}
+          {formatCurrency(originalPrice, currency, rates)}
+        </p>
+      )}
+      <p className="font-bold text-sky-700">{formatCurrency(discountedPrice, currency, rates)}</p>
+      {!hasDiscount && hasCompareAt && (
+        <p className="mt-0.5 text-sm font-normal text-slate-500 line-through">
+          {formatCurrency(originalPrice, currency, rates)}
         </p>
       )}
     </div>
