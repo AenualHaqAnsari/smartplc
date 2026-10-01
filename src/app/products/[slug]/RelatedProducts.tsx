@@ -1,5 +1,4 @@
 import Link from "next/link";
-import Image from "next/image";
 import { prisma } from "@/lib/prisma";
 import CurrencyPrice from "@/components/currency/CurrencyPrice";
 
@@ -130,16 +129,15 @@ export default async function RelatedProducts({
               <Link href={`/products/${relatedProduct.slug}`}>
                 <div className="relative aspect-square overflow-hidden bg-[#f3eee4]">
                   {image ? (
-                    <Image
+                    <img
                       src={image.url}
                       alt={
                         image.altText ||
                         relatedProduct.seoTitle ||
                         relatedProduct.name
                       }
-                      fill
-                      sizes="(max-width: 768px) 50vw, 25vw"
-                      className="object-cover transition duration-300 group-hover:scale-105"
+                      loading="lazy"
+                      className="absolute inset-0 h-full w-full object-cover transition duration-300 group-hover:scale-105"
                     />
                   ) : (
                     <div className="flex h-full items-center justify-center text-xs uppercase tracking-[0.12em] text-[#777064]">

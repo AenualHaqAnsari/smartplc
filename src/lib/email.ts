@@ -138,7 +138,9 @@ export async function sendOrderConfirmationEmail({
 
 export async function sendQuoteRequestEmail(data: QuoteRequestEmailData) {
   const from = process.env.ORDER_EMAIL_FROM;
-  const to = process.env.QUOTE_EMAIL_TO;
+  // The sender address is also the store's configured mailbox in basic
+  // deployments. Use it as the quote inbox unless a separate inbox is set.
+  const to = process.env.QUOTE_EMAIL_TO || from;
   if (!process.env.RESEND_API_KEY || !from || !to) {
     throw new Error("Quote email configuration is incomplete.");
   }
