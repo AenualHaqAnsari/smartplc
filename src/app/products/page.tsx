@@ -49,7 +49,7 @@ export async function generateMetadata({
     sensors: { title: "Industrial Sensors & Encoders | Industrial Automation", description: "Browse industrial sensing products for temperature, pressure, proximity, photoelectric and encoder applications." },
     "control-panels": { title: "Control Panel Components | Industrial Automation", description: "Explore electrical and automation components for industrial control panels." },
     "industrial-communication": { title: "Industrial Communication Products | Industrial Automation", description: "Enquire about industrial Ethernet, RS485, Modbus and communication products." },
-    "automation-components": { title: "Automation Components | Industrial Automation", description: "Browse automation components including relays, contactors, circuit protection and power supplies." },
+    "automation-components": { title: "New Machines | Industrial Automation", description: "Browse new industrial machines and production equipment. Contact us to confirm specifications and availability." },
   };
 
   const seo = categorySeo[category];
@@ -156,7 +156,7 @@ export default async function ProductsPage({
     sensors: { heading: "Industrial Sensors", description: "Temperature, pressure, proximity, photoelectric sensors and encoders." },
     "control-panels": { heading: "Control Panel Components", description: "Electrical and control components for industrial panels." },
     "industrial-communication": { heading: "Industrial Communication", description: "Industrial Ethernet, RS485, Modbus and communication products." },
-    "automation-components": { heading: "Automation Components", description: "Relays, contactors, circuit protection and industrial power supplies." },
+    "automation-components": { heading: "New Machines", description: "New machines and production equipment for industrial applications. Contact us to confirm specifications and availability." },
   };
 
   const collectionName =
@@ -190,7 +190,7 @@ export default async function ProductsPage({
         </p>
         <div className="mt-8 flex flex-wrap gap-3">
           <Link href="/products" className="border border-sky-600 bg-sky-600 px-5 py-3 text-xs font-bold uppercase tracking-[0.15em] text-white">All Products</Link>
-          {[['PLC','plc'],['HMI','hmi'],['VFD & Drives','vfd-drives'],['Servo Systems','servo-systems'],['Sensors','sensors'],['Control Panels','control-panels'],['Communication','industrial-communication']].map(([name, slug]) => <Link key={slug} href={`/products?category=${slug}`} className="border border-slate-300 px-5 py-3 text-xs font-bold uppercase tracking-[0.15em] text-slate-700 hover:border-sky-500 hover:text-sky-700">{name}</Link>)}
+          {[['PLC','plc'],['HMI','hmi'],['VFD & Drives','vfd-drives'],['Servo Systems','servo-systems'],['Sensors','sensors'],['Control Panels','control-panels'],['Communication','industrial-communication'],['New Machines','automation-components']].map(([name, slug]) => <Link key={slug} href={`/products?category=${slug}`} className="border border-slate-300 px-5 py-3 text-xs font-bold uppercase tracking-[0.15em] text-slate-700 hover:border-sky-500 hover:text-sky-700">{name}</Link>)}
         </div>
 
         {products.length === 0 ? (

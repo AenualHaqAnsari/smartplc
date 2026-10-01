@@ -10,7 +10,7 @@ const categories = [
   ["Sensors", "sensors", "Temperature, pressure, proximity, photoelectric sensors and encoders."],
   ["Control Panel Components", "control-panels", "Components for industrial control and electrical panels."],
   ["Industrial Communication", "industrial-communication", "Industrial Ethernet, RS485, Modbus and communication equipment."],
-  ["Automation Components", "automation-components", "Relays, contactors, circuit protection and power supplies."],
+  ["New Machines", "automation-components", "New machines and production equipment for industrial automation applications."],
 ] as const;
 async function main() {
   for (const [name, slug, description] of categories) {

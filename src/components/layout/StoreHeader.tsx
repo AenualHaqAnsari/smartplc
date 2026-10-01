@@ -3,7 +3,7 @@ import { useState } from "react";
 import Link from "next/link";
 import CartButton from "@/components/cart/CartButton";
 import CurrencySelector from "@/components/currency/CurrencySelector";
-const categories=[["PLC","plc"],["HMI","hmi"],["VFD & Drives","vfd-drives"],["Servo Systems","servo-systems"],["Sensors","sensors"],["Control Panels","control-panels"],["Industrial Communication","industrial-communication"]];
+const categories=[["PLC","plc"],["HMI","hmi"],["VFD & Drives","vfd-drives"],["Servo Systems","servo-systems"],["Sensors","sensors"],["Control Panels","control-panels"],["Industrial Communication","industrial-communication"],["New Machines","automation-components"]];
 const itServices=[["Website Development","Website Development"],["Android App Development","Android App Development"],["E-commerce Development","E-commerce Development"],["Custom Software & API Development","Custom Software and API Development"],["App Support & Maintenance","App Support and Maintenance"]];
 export default function StoreHeader(){
  const [open,setOpen]=useState(false); const close=()=>setOpen(false);
