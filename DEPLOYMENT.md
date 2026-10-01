@@ -10,21 +10,26 @@ This guide deploys the Next.js app on an Ubuntu server with Node.js, PostgreSQL,
 
 ## 2. Install the application
 
-Use `/srv/smartplcsolutions` as the application directory (or adjust the paths below). Copy the project contents from `medieval-armors/` to the server, excluding `.env`, `.next`, `node_modules`, and local backups. Product image URLs are stored in PostgreSQL as `/uploads/products/...`; their files must remain at the matching path on every release. The uploader supports and preserves JPG, PNG, WebP, AVIF, and GIF, so a file-extension conversion is not needed for normal browsers. Missing images after publishing usually mean the upload directory was omitted or replaced during deployment.
+Use `/srv/smartplcsolutions` as the application directory (or adjust the paths below). Copy the project contents from `medieval-armors/` to the server, excluding `.env`, `.next`, `node_modules`, and local backups. Product image files must live in persistent storage because deployments replace the application directory. The uploader supports JPG, PNG, WebP, AVIF, and GIF, and serves new uploads through an application route so images uploaded after a build are available immediately.
 
-For deployments that replace the application directory, keep uploads in a persistent shared directory and link it into the app before starting the service. For example, on the first setup:
+Create persistent storage for uploads and point `PRODUCT_UPLOAD_DIR` in `/etc/smartplcsolutions.env` to it. The API writes new images there and serves them directly. For example, on first setup:
 
 ```sh
 sudo mkdir -p /srv/smartplcsolutions-shared/uploads/products
 sudo chown -R smartplc:smartplc /srv/smartplcsolutions-shared/uploads
+echo 'PRODUCT_UPLOAD_DIR=/srv/smartplcsolutions-shared/uploads/products' | sudo tee -a /etc/smartplcsolutions.env
 ```
 
-For each release, copy existing uploads into the shared directory once if needed, then create the link (use the actual release directory):
+Existing image URLs use `/uploads/products/...`. Preserve those files at the same URL path by linking the legacy public directory to shared storage on each release. During the one-time migration, copy existing uploads and move the old directory aside before creating the link:
 
 ```sh
+rsync -a /srv/smartplcsolutions/public/uploads/ /srv/smartplcsolutions-shared/uploads/
+mv /srv/smartplcsolutions/public/uploads /srv/smartplcsolutions/public/uploads.pre-persistent
 mkdir -p /srv/smartplcsolutions/public
-ln -sfn /srv/smartplcsolutions-shared/uploads /srv/smartplcsolutions/public/uploads
+ln -s /srv/smartplcsolutions-shared/uploads /srv/smartplcsolutions/public/uploads
 ```
+
+For later releases, create the `public/uploads` link before building or starting the new release; existing links in a release directory can be left in place.
 
 Back up `/srv/smartplcsolutions-shared/uploads` along with PostgreSQL. If uploads were not preserved on the server, restore them from the previous release or a backup; the database only contains their URLs, not the image bytes.
 

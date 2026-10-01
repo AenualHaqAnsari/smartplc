@@ -36,6 +36,10 @@ export default function ProductImageCarousel({
   const [isPaused, setIsPaused] =
     useState(false);
 
+  useEffect(() => {
+    setActiveIndex(primaryIndex);
+  }, [primaryIndex, primaryImage?.id]);
+
   const hasMultipleImages =
     images.length > 1;
 

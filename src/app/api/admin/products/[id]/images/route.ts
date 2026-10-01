@@ -1,8 +1,48 @@
 ﻿import path from "path";
-import { mkdir, writeFile } from "fs/promises";
+import { mkdir, readFile, writeFile } from "fs/promises";
 import sharp from "sharp";
 import { prisma } from "@/lib/prisma";
 import { requireAdmin } from "@/lib/admin-auth";
+import { revalidatePath } from "next/cache";
+import { getProductImageStorageRoot } from "@/lib/product-image-storage";
+
+const imageContentTypes: Record<string, string> = {
+  ".jpg": "image/jpeg", ".jpeg": "image/jpeg", ".png": "image/png",
+  ".webp": "image/webp", ".avif": "image/avif", ".gif": "image/gif",
+};
+
+/** Serve uploads at request time; Next's public asset manifest is build-time. */
+export async function GET(
+  request: Request,
+  { params }: { params: Promise<{ id: string }> }
+) {
+  const { id: productId } = await params;
+  const fileName = new URL(request.url).searchParams.get("file") || "";
+  if (!/^[a-zA-Z0-9_-]+$/.test(productId) || !/^[a-zA-Z0-9._-]+$/.test(fileName)) {
+    return new Response("Not found", { status: 404 });
+  }
+
+  const imageUrl = `/api/admin/products/${productId}/images?file=${encodeURIComponent(fileName)}`;
+  const image = await prisma.productImage.findFirst({
+    where: { productId, url: imageUrl }, select: { id: true },
+  });
+  const contentType = imageContentTypes[path.extname(fileName).toLowerCase()];
+  if (!image || !contentType) return new Response("Not found", { status: 404 });
+
+  try {
+    const bytes = await readFile(path.join(getProductImageStorageRoot(), productId, fileName));
+    return new Response(new Uint8Array(bytes), {
+      headers: {
+        "Content-Type": contentType,
+        "Content-Length": String(bytes.byteLength),
+        "Cache-Control": "public, max-age=31536000, immutable",
+        "X-Content-Type-Options": "nosniff",
+      },
+    });
+  } catch {
+    return new Response("Not found", { status: 404 });
+  }
+}
 
 export async function POST(
   request: Request,
@@ -161,13 +201,7 @@ export async function POST(
         where: { productId },
       });
 
-    const uploadDir = path.join(
-      process.cwd(),
-      "public",
-      "uploads",
-      "products",
-      productId
-    );
+    const uploadDir = path.join(getProductImageStorageRoot(), productId);
 
     await mkdir(uploadDir, {
       recursive: true,
@@ -187,32 +221,32 @@ export async function POST(
     );
 
     const url =
-      `/uploads/products/${productId}/${fileName}`;
+      `/api/admin/products/${productId}/images?file=${encodeURIComponent(fileName)}`;
 
     const image =
       await prisma.$transaction(
         async (tx) => {
-          const shouldBePrimary =
-            imageCount === 0;
-
-          if (shouldBePrimary) {
-            await tx.productImage.updateMany({
-              where: { productId },
-              data: { isPrimary: false },
-            });
-          }
+          await tx.productImage.updateMany({
+            where: { productId },
+            data: { isPrimary: false },
+          });
 
           return tx.productImage.create({
             data: {
               url,
               altText,
               sortOrder: imageCount,
-              isPrimary: shouldBePrimary,
+              isPrimary: true,
               productId,
             },
           });
         }
       );
+
+    revalidatePath("/", "page");
+    revalidatePath("/products", "page");
+    revalidatePath(`/products/${product.slug}`, "page");
+    revalidatePath("/products/category/[slug]", "page");
 
     console.log(
       `ADMIN IMAGE UPLOAD: detected=${detectedFormatKey}, saved=${fileName}`
