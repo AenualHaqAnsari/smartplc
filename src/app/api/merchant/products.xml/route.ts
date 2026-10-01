@@ -1,7 +1,5 @@
 import { prisma } from "@/lib/prisma";
 
-const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || "";
-
 function xmlEscape(value: string): string {
   return value
     .replace(/&/g, "&amp;")
@@ -11,53 +9,36 @@ function xmlEscape(value: string): string {
     .replace(/'/g, "&apos;");
 }
 
-function absoluteImageUrl(url: string): string {
-  if (url.startsWith("http://") || url.startsWith("https://")) {
-    return url;
-  }
-
-  return `${SITE_URL}${url.startsWith("/") ? "" : "/"}${url}`;
-}
-
-function deriveColor(
-  name: string,
-  description: string,
-  finishValues: string[]
-): string {
-  const text = `${name} ${description} ${finishValues.join(" ")}`.toLowerCase();
-
-  const colors: string[] = [];
-
-  if (text.includes("black")) colors.push("Black");
-  if (text.includes("silver")) colors.push("Silver");
-  if (text.includes("gold")) colors.push("Gold");
-  if (text.includes("red")) colors.push("Red");
-  if (text.includes("blue")) colors.push("Blue");
-  if (text.includes("green")) colors.push("Green");
-  if (text.includes("brown")) colors.push("Brown");
-  if (text.includes("white")) colors.push("White");
-
-  if (colors.length > 0) {
-    return Array.from(new Set(colors)).join("/");
-  }
-
-  return "Silver";
-}
-
-function lowestPrice(
-  basePrice: number,
-  variants: { price: unknown }[]
-): number {
+function lowestPrice(basePrice: number, variants: { price: unknown }[]): number {
   const prices = variants
     .map((variant) => Number(variant.price))
     .filter((price) => Number.isFinite(price) && price > 0);
 
-  return prices.length > 0
-    ? Math.min(basePrice, ...prices)
-    : basePrice;
+  return prices.length > 0 ? Math.min(...prices) : basePrice;
 }
 
 export async function GET() {
+  const configuredSiteUrl = process.env.NEXT_PUBLIC_SITE_URL?.trim();
+  let siteUrl: string;
+  try {
+    if (!configuredSiteUrl) throw new Error("Missing site URL");
+    const parsed = new URL(configuredSiteUrl);
+    if (
+      !["http:", "https:"].includes(parsed.protocol) ||
+      (process.env.NODE_ENV === "production" && parsed.protocol !== "https:")
+    ) {
+      throw new Error("Invalid site URL");
+    }
+    siteUrl = parsed.origin;
+  } catch {
+    return new Response("NEXT_PUBLIC_SITE_URL must be set to the public site origin.", {
+      status: 503,
+      headers: { "Content-Type": "text/plain; charset=utf-8" },
+    });
+  }
+
+  const absoluteUrl = (value: string) => new URL(value, `${siteUrl}/`).toString();
+
   const products = await prisma.product.findMany({
     where: {
       status: "ACTIVE",
@@ -81,16 +62,14 @@ export async function GET() {
   });
 
   const items = products.map((product) => {
-    const images = product.images
-      .map((image) => absoluteImageUrl(image.url))
-      .filter(Boolean);
+    const images = product.images.map((image) => absoluteUrl(image.url));
 
     const primaryImage =
       product.images.find((image) => image.isPrimary) ||
       product.images[0];
 
     const imageUrl = primaryImage
-      ? absoluteImageUrl(primaryImage.url)
+      ? absoluteUrl(primaryImage.url)
       : "";
 
     const additionalImages = images
@@ -108,22 +87,9 @@ export async function GET() {
     );
 
     const availability =
-      totalStock > 0 || product.variants.length === 0
+      totalStock > 0
         ? "in_stock"
         : "out_of_stock";
-
-    const finishValues = product.variants
-      .map((variant) => variant.finish)
-      .filter(
-        (finish): finish is string =>
-          typeof finish === "string" && finish.trim().length > 0
-      );
-
-    const color = deriveColor(
-      product.name,
-      product.description,
-      finishValues
-    );
 
     const description =
       product.shortDescription?.trim() ||
@@ -135,7 +101,9 @@ export async function GET() {
       product.id;
 
     const productUrl =
-      `${SITE_URL}/products/${product.slug}`;
+      `${siteUrl}/products/${product.slug}`;
+
+    if (!imageUrl || !Number.isFinite(price) || price <= 0) return null;
 
     return {
       id: sku,
@@ -146,10 +114,11 @@ export async function GET() {
       additionalImages,
       price,
       availability,
-      color,
       category: product.category.name,
+      brand: product.brand?.trim() || null,
+      mpn: product.model?.trim() || null,
     };
-  });
+  }).filter((item): item is NonNullable<typeof item> => item !== null);
 
   const xmlItems = items
     .map((item) => {
@@ -172,17 +141,9 @@ export async function GET() {
 ${additionalImagesXml}
       <g:availability>${item.availability}</g:availability>
       <g:price>${item.price.toFixed(2)} USD</g:price>
-      <g:brand>Industrial Automation</g:brand>
-      <g:condition>new</g:condition>
-      <g:age_group>adult</g:age_group>
-      <g:gender>unisex</g:gender>
-      <g:color>${xmlEscape(item.color)}</g:color>
-      <g:google_product_category>Apparel &amp; Accessories</g:google_product_category>
-      <g:shipping>
-        <g:country>US</g:country>
-        <g:service>Free Shipping</g:service>
-        <g:price>0.00 USD</g:price>
-      </g:shipping>
+      ${item.brand ? `<g:brand>${xmlEscape(item.brand)}</g:brand>` : ""}
+      ${item.mpn ? `<g:mpn>${xmlEscape(item.mpn)}</g:mpn>` : ""}
+      <g:product_type>${xmlEscape(`Industrial Automation > ${item.category}`)}</g:product_type>
     </item>`;
     })
     .join("\n");
@@ -192,7 +153,7 @@ ${additionalImagesXml}
   xmlns:g="http://base.google.com/ns/1.0">
   <channel>
     <title>Industrial Automation</title>
-    <link>${SITE_URL}</link>
+    <link>${siteUrl}</link>
     <description>Industrial automation products for control, sensing and machine applications.</description>
 ${xmlItems}
   </channel>
