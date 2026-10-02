@@ -219,6 +219,29 @@ export default function ContactPage() {
       </section>
 
       <section className="mx-auto max-w-5xl px-4 py-10 sm:px-6 sm:py-14">
+        <div className="mb-8 border border-[#e2e8f0] bg-white p-6 sm:p-8">
+          <p className="text-[10px] font-semibold uppercase tracking-[0.25em] text-[#0369a1]">
+            Call or WhatsApp
+          </p>
+          <div className="mt-4 grid gap-4 sm:grid-cols-2">
+            {["7456812005", "9759629484"].map((number) => (
+              <div key={number} className="flex flex-wrap items-center justify-between gap-3 border border-[#e2e8f0] p-4">
+                <a href={`tel:+91${number}`} className="font-semibold text-[#17212b] hover:text-[#0877b9]">
+                  +91 {number}
+                </a>
+                <a
+                  href={`https://wa.me/91${number}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-sm font-semibold text-[#0877b9] hover:text-[#075985]"
+                >
+                  WhatsApp
+                </a>
+              </div>
+            ))}
+          </div>
+        </div>
+
         {loading ? (
           <div className="border border-[#e2e8f0] bg-[#ffffff] p-10 text-center">
             <p className="text-sm text-[#999184]">
