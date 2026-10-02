@@ -4,6 +4,8 @@ import { prisma } from "@/lib/prisma";
 import { getCustomerId } from "@/lib/customer-auth";
 import ProductDetails from "./ProductDetails";
 import ProductJsonLd from "@/components/seo/ProductJsonLd";
+import { getCountryDiscount } from "@/lib/pricing";
+import { headers } from "next/headers";
 import BreadcrumbJsonLd from "@/components/seo/BreadcrumbJsonLd";
 import RelatedProducts from "./RelatedProducts";
 
@@ -365,6 +367,16 @@ export default async function ProductPage({
     { name: product.category.name, url: `${process.env.NEXT_PUBLIC_SITE_URL || ""}/products?category=${product.category.slug}` },
     { name: product.name, url: `${process.env.NEXT_PUBLIC_SITE_URL || ""}/products/${product.slug}` },
   ];
+  const requestHeaders = await headers();
+  const visitorCountry = (
+    requestHeaders.get("x-vercel-ip-country") ||
+    requestHeaders.get("cf-ipcountry") ||
+    requestHeaders.get("x-country") ||
+    "US"
+  ).trim().toUpperCase();
+  const googleDiscountRate = await getCountryDiscount(
+    visitorCountry === "IN" ? "IN" : "US"
+  );
 
   return (
     <>
@@ -376,6 +388,8 @@ export default async function ProductPage({
         category={product.category.name}
         images={product.images.map((image) => image.url)}
         priceUSD={product.basePrice.toString()}
+        compareAtPriceUSD={product.compareAtPrice?.toString() ?? null}
+        discountRate={googleDiscountRate}
         inStock={product.variants.some((variant) => variant.stock > 0)}
         customAvailable={product.variants.some((variant) => variant.customAvailable)}
         variants={product.variants.map((variant) => ({
@@ -383,6 +397,7 @@ export default async function ProductPage({
           name: variant.name,
           sku: variant.sku,
           price: variant.price.toString(),
+          compareAtPrice: variant.compareAtPrice?.toString() ?? null,
           stock: variant.stock,
           size: variant.size,
           sizeType: variant.sizeType,

@@ -3,6 +3,7 @@ type ProductJsonLdVariant = {
   name: string;
   sku?: string | null;
   price: string;
+  compareAtPrice?: string | null;
   stock: number;
   size?: string | null;
   sizeType?: "STANDARD" | "CUSTOM";
@@ -18,6 +19,8 @@ type ProductJsonLdProps = {
   category?: string | null;
   images: string[];
   priceUSD: string;
+  compareAtPriceUSD?: string | null;
+  discountRate?: number;
   inStock: boolean;
   customAvailable?: boolean;
   variants?: ProductJsonLdVariant[];
@@ -37,6 +40,8 @@ export default function ProductJsonLd({
   category,
   images,
   priceUSD,
+  compareAtPriceUSD,
+  discountRate = 0,
   inStock,
   customAvailable = false,
   variants = [],
@@ -50,24 +55,39 @@ export default function ProductJsonLd({
       Number(variant.price) > 0
   );
 
-  const variantPrices = validVariants.map((variant) =>
-    Number(variant.price)
-  );
+  const offers = (validVariants.length > 0 ? validVariants : [{
+    id: "product",
+    name,
+    price: priceUSD,
+    compareAtPrice: compareAtPriceUSD,
+    stock: inStock ? 1 : 0,
+  }]).map((variant) => {
+    const basePrice = Number(variant.price);
+    const salePrice = basePrice * (1 - Math.min(100, Math.max(0, discountRate)) / 100);
+    const compareAt = Number(variant.compareAtPrice);
+    const originalPrice = Number.isFinite(compareAt) && compareAt > basePrice
+      ? compareAt
+      : basePrice;
+    const hasSale = salePrice < originalPrice - 0.009;
 
-  const lowestVariantPrice =
-    variantPrices.length > 0
-      ? Math.min(...variantPrices)
-      : Number(priceUSD);
-
-  const highestVariantPrice =
-    variantPrices.length > 0
-      ? Math.max(...variantPrices)
-      : Number(priceUSD);
-
-  const totalStock = validVariants.reduce(
-    (sum, variant) => sum + Math.max(0, Number(variant.stock) || 0),
-    0
-  );
+    return {
+      "@type": "Offer",
+      price: (hasSale ? salePrice : originalPrice).toFixed(2),
+      priceCurrency: "USD",
+      ...(hasSale ? {
+        priceSpecification: {
+          "@type": "UnitPriceSpecification",
+          priceType: "https://schema.org/StrikethroughPrice",
+          price: originalPrice.toFixed(2),
+          priceCurrency: "USD",
+        },
+      } : {}),
+      availability: Number(variant.stock) > 0
+        ? "https://schema.org/InStock"
+        : "https://schema.org/OutOfStock",
+      url: `${siteUrl}/products/${slug}`,
+    };
+  });
 
   const hasCustomVariant =
     customAvailable ||
@@ -88,24 +108,8 @@ export default function ProductJsonLd({
 
     ...(images.length ? { image: images } : {}),
 
-    offers: {
-      "@type": "AggregateOffer",
-
-      lowPrice: lowestVariantPrice.toFixed(2),
-      highPrice: highestVariantPrice.toFixed(2),
-      priceCurrency: "USD",
-
-      offerCount:
-        validVariants.length > 0
-          ? validVariants.length
-          : 1,
-
-      availability:
-        inStock || totalStock > 0
-          ? "https://schema.org/InStock"
-          : "https://schema.org/OutOfStock",
-
-      url: `${siteUrl}/products/${slug}`,
+    offers: offers.map((offer) => ({
+      ...offer,
 
       shippingDetails: {
         "@type": "OfferShippingDetails",
@@ -139,7 +143,7 @@ export default function ProductJsonLd({
         merchantReturnLink:
           `${siteUrl}/policies/returns`,
       },
-    },
+    })),
 
     ...(validVariants.length
       ? {

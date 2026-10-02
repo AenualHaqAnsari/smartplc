@@ -1,4 +1,5 @@
 import { prisma } from "@/lib/prisma";
+import { getCountryDiscount } from "@/lib/pricing";
 
 function xmlEscape(value: string): string {
   return value
@@ -7,14 +8,6 @@ function xmlEscape(value: string): string {
     .replace(/>/g, "&gt;")
     .replace(/"/g, "&quot;")
     .replace(/'/g, "&apos;");
-}
-
-function lowestPrice(basePrice: number, variants: { price: unknown }[]): number {
-  const prices = variants
-    .map((variant) => Number(variant.price))
-    .filter((price) => Number.isFinite(price) && price > 0);
-
-  return prices.length > 0 ? Math.min(...prices) : basePrice;
 }
 
 export async function GET() {
@@ -38,6 +31,7 @@ export async function GET() {
   }
 
   const absoluteUrl = (value: string) => new URL(value, `${siteUrl}/`).toString();
+  const discountRate = await getCountryDiscount("US");
 
   const products = await prisma.product.findMany({
     where: {
@@ -78,7 +72,20 @@ export async function GET() {
 
     const basePrice = Number(product.basePrice);
 
-    const price = lowestPrice(basePrice, product.variants);
+    const priceOptions = product.variants.length > 0
+      ? product.variants.map((variant) => ({
+          price: Number(variant.price),
+          compareAtPrice: Number(variant.compareAtPrice),
+        }))
+      : [{ price: basePrice, compareAtPrice: Number(product.compareAtPrice) }];
+    const validPriceOptions = priceOptions.filter(({ price }) => Number.isFinite(price) && price > 0);
+    const lowestPriceOption = validPriceOptions.length > 0
+      ? validPriceOptions.reduce((lowest, option) => option.price < lowest.price ? option : lowest)
+      : { price: basePrice, compareAtPrice: Number(product.compareAtPrice) };
+    const price = Number.isFinite(lowestPriceOption.compareAtPrice) && lowestPriceOption.compareAtPrice > lowestPriceOption.price
+      ? lowestPriceOption.compareAtPrice
+      : lowestPriceOption.price;
+    const discountedPrice = lowestPriceOption.price * (1 - discountRate / 100);
 
     const totalStock = product.variants.reduce(
       (sum, variant) =>
@@ -113,6 +120,7 @@ export async function GET() {
       imageUrl,
       additionalImages,
       price,
+      salePrice: discountedPrice < price - 0.009 ? discountedPrice : null,
       availability,
       category: product.category.name,
       brand: product.brand?.trim() || null,
@@ -141,6 +149,7 @@ export async function GET() {
 ${additionalImagesXml}
       <g:availability>${item.availability}</g:availability>
       <g:price>${item.price.toFixed(2)} USD</g:price>
+      ${item.salePrice !== null ? `<g:sale_price>${item.salePrice.toFixed(2)} USD</g:sale_price>` : ""}
       ${item.brand ? `<g:brand>${xmlEscape(item.brand)}</g:brand>` : ""}
       ${item.mpn ? `<g:mpn>${xmlEscape(item.mpn)}</g:mpn>` : ""}
       <g:product_type>${xmlEscape(`Industrial Automation > ${item.category}`)}</g:product_type>
