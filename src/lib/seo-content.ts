@@ -1,9 +1,17 @@
 export type ContentSection = { title: string; body: string; bullets?: string[] };
+export type EditorialSection = {
+  title: string;
+  body: string;
+  bullets?: string[];
+  steps?: string[];
+  links?: { label: string; href: string }[];
+};
 export type SeoPage = {
   slug: string; title: string; h1: string; description: string; intro: string;
   group: string; overview: string; requirements: string[]; sequence: string[];
   controls: ContentSection[]; productCategories: string[]; serviceLinks: { label: string; service: string }[];
   technologies: { label: string; href: string }[]; related: string[]; faqs: { question: string; answer: string }[];
+  editorialSections?: EditorialSection[];
 };
 
 const services = {
@@ -21,7 +29,7 @@ const tech = {
   process: { label: "Process automation", href: "/process-automation" }, weight: { label: "Weighing automation", href: "/weighing-automation" },
   panel: { label: "Control panels", href: "/control-panels" },
 } as const;
-type AppSeed = { slug: string; name: string; group: string; overview: string; requirements: string[]; sequence: string[]; controls: ContentSection[]; products?: string[]; services?: (keyof typeof services)[]; related?: string[]; faqs?: { question: string; answer: string }[] };
+type AppSeed = { slug: string; name: string; title?: string; seoDescription?: string; intro?: string; group: string; overview: string; requirements: string[]; sequence: string[]; controls: ContentSection[]; products?: string[]; services?: (keyof typeof services)[]; related?: string[]; faqs?: { question: string; answer: string }[]; editorialSections?: EditorialSection[] };
 const sequence = (items: string[]) => items;
 const commonControls = (plc = true): ContentSection[] => [
   ...(plc ? [{ title: "PLC sequence and interlocks", body: "The PLC sequence is defined from the machine states, operator actions, permissives and fault responses agreed for the project. Manual and automatic modes should have clear transitions and reset behavior." }] : []),
@@ -31,9 +39,9 @@ function makeApp(seed: AppSeed): SeoPage {
   const name = seed.name;
   const controls = seed.controls;
   return {
-    slug: seed.slug, title: name, h1: name,
-    description: `${seed.overview} Discuss PLC, operator interface, drives, instrumentation and interlocks for your ${name.toLowerCase()} requirements with SmartPLC Solutions.`,
-    intro: `${seed.overview} Automation scope depends on the equipment, operating sequence, existing controls and process requirements. Share the machine details and desired outcome to define a suitable control approach.`,
+    slug: seed.slug, title: seed.title ?? name, h1: name,
+    description: seed.seoDescription ?? `${seed.overview} Discuss PLC, operator interface, drives, instrumentation and interlocks for your ${name.toLowerCase()} requirements with SmartPLC Solutions.`,
+    intro: seed.intro ?? `${seed.overview} Automation scope depends on the equipment, operating sequence, existing controls and process requirements. Share the machine details and desired outcome to define a suitable control approach.`,
     group: seed.group, overview: seed.overview, requirements: seed.requirements, sequence: seed.sequence,
     controls, productCategories: seed.products ?? ["plc", "hmi"],
     serviceLinks: (seed.services ?? ["plc", "hmi", "machine"]).map((k) => services[k]),
@@ -42,6 +50,7 @@ function makeApp(seed: AppSeed): SeoPage {
       return [map[key]?.href, map[key]] as const;
     }).filter(([href]) => Boolean(href))).values()),
     related: seed.related ?? [],
+    editorialSections: seed.editorialSections,
     faqs: seed.faqs ?? [
       { question: `What information is useful for a ${name.toLowerCase()} enquiry?`, answer: "Describe the machine or process, current controls, operating sequence, required modes, available drawings and the changes you want to make. Include known controller and drive models where possible." },
       { question: "Can existing equipment be considered?", answer: "Yes. Include the installed controller, HMI, drives, sensors and any drawings or fault details so the existing arrangement can be reviewed before defining scope." },
@@ -102,7 +111,118 @@ export const applicationBySlug = new Map(applications.map((page) => [page.slug, 
 
 const capabilitySeeds: AppSeed[] = [
   {slug:"industrial-automation",name:"Industrial Automation",group:"Automation Engineering",overview:"Industrial automation connects control systems, machines, instrumentation and operator workflows to support defined manufacturing and process requirements.",requirements:["Process goals, equipment boundaries and operating requirements","Existing PLC, HMI, drive and instrumentation details","Interfaces to upstream or downstream systems","Commissioning, support and documentation needs"],sequence:["Review the process and existing equipment","Agree control scope, interfaces and operating modes","Implement and review the required control behavior","Verify operation against the agreed sequence","Document handover and unresolved dependencies"],controls:automationControls("machine"),products:["plc","hmi","vfd-drives","servo-systems","sensors","control-panels","industrial-communication"],services:["plc","hmi","vfd","panel","machine","retrofit","scada"],related:["process-automation","machine-automation","applications"]},
-  {slug:"plc",name:"PLC Systems for Industrial Automation",group:"Technology",overview:"Programmable logic controllers coordinate machine inputs, outputs, sequences and communication with connected equipment.",requirements:["I/O count and signal types","Sequence, interlocks and operating modes","Controller and network compatibility","Service, diagnostics and expansion considerations"],sequence:["Document machine states and required signals","Select a compatible controller platform with the project team","Implement and review sequence and fault handling","Verify I/O and connected-device behavior","Record changes and handover information"],controls:commonControls(),products:["plc","industrial-communication"],services:["plc","retrofit"],related:["plc-programming","machine-automation","process-automation"]},
+  {
+    slug: "plc",
+    name: "PLC Systems for Industrial Automation",
+    title: "PLC for Industrial Automation | PLC Systems",
+    seoDescription: "PLC systems for industrial automation, machine and process control. Explore PLC products, programming services, and HMI, VFD, sensor and communication integration.",
+    intro: "Explore programmable logic controllers (PLCs) for industrial machine control, production lines and process automation. This guide explains PLC operation, system integration and selection considerations, alongside real PLC products and links to programming services.",
+    group: "Technology",
+    overview: "A PLC automation project begins with the machine or process functions, field signals, operating modes and equipment interfaces that need to be controlled. The controller, I/O and connected devices are selected to suit that defined scope.",
+    requirements: [
+      "Machine or process functions, operating sequence and operator modes",
+      "Digital and analog signals, field devices and actuator interfaces",
+      "HMI, VFD, servo, SCADA and communication needs where applicable",
+      "Installation environment, diagnostics, expansion and future I/O needs",
+    ],
+    sequence: [
+      "Read the available input states from sensors and connected devices",
+      "Evaluate the programmed logic, sequence conditions and interlocks",
+      "Update output commands to connected equipment according to the logic",
+      "Exchange status and operator commands with compatible HMI or supervisory systems",
+    ],
+    controls: [
+      { title: "PLC sequence, modes and interlocks", body: "Control logic can organize machine states, manual and automatic operation, timers, counters, alarms and fault responses. The required behavior comes from the machine sequence and its operating requirements.", bullets: ["Define permissives and interlocks for each sequence step", "Handle startup, shutdown, abnormal conditions and reset behavior", "Provide clear status and alarm information for operators"] },
+      { title: "PLC integration with HMI, drives and field devices", body: "A PLC can exchange commands and status with compatible HMI panels, VFDs, servo systems, sensors and other equipment. The available interfaces and control functions depend on the selected devices and machine design." },
+    ],
+    products: ["plc", "industrial-communication"],
+    services: ["plc", "hmi", "machine", "retrofit", "panel"],
+    related: ["plc-programming", "machine-automation", "process-automation", "automation-retrofit", "control-panels"],
+    editorialSections: [
+      {
+        title: "What Is a PLC in Industrial Automation?",
+        body: "A programmable logic controller (PLC) is an industrial controller that reads signals from field devices, evaluates a stored control program, and updates outputs connected to machinery or process equipment. It provides a way to coordinate machine automation, manufacturing operations and process control using logic tied to the physical system.",
+        bullets: ["Digital inputs report discrete states such as a sensor, pushbutton or limit switch.", "Digital outputs command discrete devices such as an indicator, relay or contactor interface.", "Analog inputs measure variable signals such as temperature, pressure, flow or level when suitable instruments and I/O are provided.", "Analog outputs can provide a variable reference to compatible equipment where the control design requires one."],
+      },
+      {
+        title: "How PLCs Are Used in Industrial Automation",
+        body: "A PLC program combines input conditions, sequence logic, interlocks, timers and counters to decide when equipment may operate and what should happen next. In machine automation, it can coordinate cycles, conveyors, motors and packaging equipment. In process automation, it can use suitable instruments and outputs as part of temperature, pressure, flow or level control. Batching and weighing sequences can coordinate measured additions and material transfer when compatible weighing equipment is provided. These functions depend on the actual signals, controller, actuators and process requirements.",
+        links: [
+          { label: "Industrial automation", href: "/industrial-automation" },
+          { label: "Machine automation", href: "/machine-automation" },
+          { label: "Process automation", href: "/process-automation" },
+          { label: "PLC-based conveyor automation", href: "/applications/conveyor-automation" },
+          { label: "PLC batching and weighing automation", href: "/applications/batching-plant-automation" },
+          { label: "PLC-based pump automation", href: "/applications/pump-automation" },
+          { label: "Temperature control", href: "/temperature-control" },
+          { label: "Pressure control", href: "/pressure-control" },
+          { label: "Weighing automation", href: "/weighing-automation" },
+        ],
+      },
+      {
+        title: "PLC-Based Industrial Automation Architecture",
+        body: "A typical control arrangement connects field devices to PLC inputs, uses programmed logic to coordinate the process, and sends output commands to drives or other actuators. An HMI provides an operator view and may send permitted commands or setpoints back to the PLC. SCADA may provide supervisory monitoring where the site architecture requires it. The exact signal path and hardware depend on the machine or process.",
+        steps: ["Sensors and field devices → PLC inputs or compatible communication interface", "PLC → control logic, sequence states, alarms and interlocks", "PLC ↔ HMI or SCADA → operator status, commands and process values", "PLC → VFD, servo, contactor interface, valve or other actuator → machine or process"],
+        bullets: ["Digital and analog I/O are selected for the actual sensors and actuators.", "Temperature, pressure, flow and level measurements require suitable instruments and signal interfaces.", "Load cells and encoders are used when the application and compatible interface require them.", "Safety functions require an appropriate safety design; standard PLC logic alone is not a substitute for safety-rated equipment or validation."],
+      },
+      {
+        title: "PLC Programming for Industrial Automation",
+        body: "PLC programming translates an agreed machine or process sequence into controller logic. Depending on the platform and project, this may use ladder logic, timers, counters, state transitions, sensor conditions, actuator commands, manual and automatic modes, alarms, and fault handling. Startup and shutdown behavior, commissioning checks and troubleshooting should be considered with the installed equipment and operating procedure.",
+        links: [{ label: "PLC programming services", href: "/plc-programming" }],
+      },
+      {
+        title: "How to Select a PLC for an Industrial Machine",
+        body: "Choose a PLC from the machine requirements and compatible equipment rather than from a brand name alone. The selection should leave suitable capacity for the defined application and any documented expansion needs.",
+        bullets: ["Count digital inputs and outputs and identify their signal types.", "Identify analog inputs and outputs, ranges and required signal conditioning.", "Check for high-speed inputs or pulse outputs only when the process requires them.", "Confirm required interfaces such as RS485, Modbus or Ethernet against the connected devices.", "Review HMI, VFD, servo and SCADA compatibility and communication needs.", "Account for I/O expansion, diagnostics, installation environment and control complexity."],
+      },
+      {
+        title: "PLC Communication and Integration",
+        body: "A PLC may exchange data with an HMI, VFD, servo drive, sensor interface or SCADA system through supported hardwired signals or communication protocols. Modbus over RS485 or Ethernet and industrial Ethernet are options only when the specific devices support the required protocol, topology and data mapping. Confirm the interface and behavior for communication loss during design.",
+        links: [
+          { label: "HMI operator interfaces", href: "/hmi" },
+          { label: "VFD and motor control", href: "/vfd" },
+          { label: "Servo automation", href: "/servo-automation" },
+          { label: "SCADA programming and integration", href: "/scada-programming" },
+          { label: "Industrial communication products", href: "/products/category/industrial-communication" },
+        ],
+      },
+      {
+        title: "PLC Applications in Industry",
+        body: "PLC control is used across different kinds of industrial equipment, but not every PLC or configuration is suitable for every machine. I/O capacity, processing, communication, motion functions and environmental requirements should be matched to the application.",
+        links: [
+          { label: "Conveyor automation", href: "/applications/conveyor-automation" },
+          { label: "Batching plant automation", href: "/applications/batching-plant-automation" },
+          { label: "Sand mixing plant automation", href: "/applications/sand-mixing-plant-automation" },
+          { label: "Printing machine automation", href: "/applications/printing-machine-automation" },
+          { label: "Cutting machine automation", href: "/applications/cutting-machine-automation" },
+          { label: "Drilling machine automation", href: "/applications/drilling-machine-automation" },
+          { label: "Tapping machine automation", href: "/applications/tapping-machine-automation" },
+          { label: "Heat treatment furnace automation", href: "/applications/heat-treatment-furnace-automation" },
+          { label: "Pump automation", href: "/applications/pump-automation" },
+          { label: "Compressor automation", href: "/applications/compressor-automation" },
+          { label: "Production line automation", href: "/applications/production-line-automation" },
+          { label: "Packaging machine automation", href: "/applications/packaging-machine-automation" },
+        ],
+      },
+      {
+        title: "PLC vs Relay Control",
+        body: "Relay control can suit a simple, fixed circuit. A PLC may be useful when requirements include a changing sequence, multiple operating modes, timers or counters, alarms, operator interface, communication, diagnostics or program changes. The appropriate control method depends on the machine functions, interfaces, maintenance needs and project constraints; a PLC is not automatically the right choice for every system.",
+      },
+    ],
+    faqs: [
+      { question: "What is a PLC used for in industrial automation?", answer: "A PLC reads input signals, evaluates programmed conditions and controls connected outputs to coordinate an industrial machine or process. Typical functions include sequence control, interlocks, alarms and communication with operator or drive equipment where supported." },
+      { question: "How does a PLC control an industrial machine?", answer: "The controller reads its inputs, executes the control program and updates outputs. The program defines sequence steps, permissives, modes and fault responses for the connected equipment." },
+      { question: "What is PLC-based automation?", answer: "PLC-based automation uses a programmable controller with suitable I/O and interfaces to coordinate machine or process functions. The configuration depends on the required signals, sequence and connected devices." },
+      { question: "Which PLC is suitable for an industrial machine?", answer: "That depends on the machine's digital and analog I/O, control complexity, communication, motion requirements, environment and expansion needs. Confirm the connected-device compatibility before selecting a controller." },
+      { question: "Can a PLC control a VFD?", answer: "A PLC can command and monitor a VFD when the controller and drive have compatible hardwired or network interfaces and the control design is configured for them." },
+      { question: "Can a PLC communicate with an HMI?", answer: "Yes, when the PLC and HMI support a compatible communication interface and their data mapping is configured. The HMI can then display status and provide permitted operator commands." },
+      { question: "Can PLC automation be used for process control?", answer: "A PLC can support process control when suitable instruments, I/O and control outputs are provided. Loop behavior and operating limits must be defined for the actual process." },
+      { question: "Can an existing machine be upgraded with PLC automation?", answer: "A retrofit may be possible after reviewing the existing controller, wiring, drawings, machine behavior and interfaces. See the automation retrofit capability for scope considerations." },
+      { question: "What information is needed to select a PLC?", answer: "Provide the machine sequence, I/O list or available drawings, connected sensors and actuators, communication needs, HMI and drive models, installation environment and any expansion requirements." },
+      { question: "Can SmartPLC provide PLC programming services?", answer: "PLC programming is an existing SmartPLC service. Share the controller details, machine sequence, drawings and required changes through the PLC programming service enquiry." },
+      { question: "Where can I buy industrial PLCs?", answer: "Browse the real PLC products currently listed in the SmartPLC catalog. Product details and availability should be confirmed for the exact model and application." },
+    ],
+  },
   {slug:"plc-programming",name:"PLC Programming Services",group:"Engineering Services",overview:"PLC programming defines machine or process behavior in controller logic based on agreed operating requirements and installed hardware.",requirements:["Machine sequence and state descriptions","Electrical drawings and I/O details","Controller model, software and access arrangements","Alarm, recovery and handover expectations"],sequence:["Review the equipment and control narrative","Map I/O, states, permissives and abnormal conditions","Implement logic for the agreed controller","Review and verify behavior against the sequence","Document scope, assumptions and changes"],controls:commonControls(),products:["plc","industrial-communication"],services:["plc","machine","retrofit"],related:["plc","hmi-programming","control-panels"]},
   {slug:"process-automation",name:"Process Automation",group:"Process Automation",overview:"Process automation monitors and controls industrial variables such as temperature, pressure, flow, level and weight using suitable instrumentation and control equipment.",requirements:["Process flow and control objectives","Measurement range, sensor type and installation points","Required control response and operating limits","Alarm, manual mode and failure behavior"],sequence:["Define process variables and acceptable operating states","Confirm sensors, actuators and signal interfaces","Configure control logic and operator setpoints","Review loop behavior and fault response","Verify against the process specification"],controls:[{title:"Instrumentation and feedback",body:"Control performance depends on measurement selection, installation, process response and actuator capability. Instrument ranges and limits must come from the process design."},{title:"PID and process loops",body:"PID control can be considered when the process needs continuous regulation and the instrument and actuator arrangement support it. Tuning and operating limits are application-specific."}],products:["plc","hmi","sensors","vfd-drives","industrial-communication"],services:["plc","hmi","scada","panel"],related:["temperature-control","pressure-control","flow-control","level-control","pid-control","weighing-automation"]},
   {slug:"machine-automation",name:"Machine Automation",group:"Automation Engineering",overview:"Machine automation coordinates a machine's sequence, operator controls, instrumentation and connected drives around its intended operation.",requirements:["Machine function and cycle sequence","Current controller, drawings and I/O","Required modes, interlocks and fault recovery","Interfaces with operators and adjacent equipment"],sequence:["Review machine behavior and existing controls","Map states, signals and operator actions","Define control sequence and fault responses","Implement and verify relevant interfaces","Document machine changes and handover"],controls:automationControls("machine"),products:["plc","hmi","vfd-drives","sensors","control-panels"],services:["plc","hmi","vfd","panel","machine","retrofit"],related:["custom-machine-automation","special-purpose-machine-automation","automation-retrofit"]},
