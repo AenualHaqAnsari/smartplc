@@ -24,6 +24,8 @@ export default function SiteFooter() {
           <h2 className="text-xs font-bold uppercase tracking-widest text-white">Services</h2>
           <div className="mt-4 space-y-2.5 text-sm">
             {services.map((service) => <Link key={service} href={`/request-quote?service=${encodeURIComponent(service)}`} className="block hover:text-sky-300">{service}</Link>)}
+            <Link href="/industrial-automation" className="block hover:text-sky-300">Industrial automation</Link>
+            <Link href="/applications" className="block hover:text-sky-300">Automation applications</Link>
             <Link href="/request-quote" className="block font-semibold text-sky-300">Request a quote</Link>
           </div>
         </div>
