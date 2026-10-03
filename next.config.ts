@@ -2,6 +2,11 @@
 
 const nextConfig: NextConfig = {
   images: {
+    localPatterns: [
+      {
+        pathname: "/api/admin/products/*/images",
+      },
+    ],
     remotePatterns: [
       {
         protocol: "https",
