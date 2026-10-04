@@ -352,6 +352,9 @@ export async function POST(request: Request) {
       "INDIA":
         discountIndia,
 
+      "IN":
+        discountIndia,
+
       "UNITED KINGDOM":
         discountUnitedKingdom,
 

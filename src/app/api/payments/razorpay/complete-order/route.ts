@@ -534,6 +534,12 @@ export async function POST(request: Request) {
             string,
             number
           > = {
+            "INDIA":
+              discountIndia,
+
+            "IN":
+              discountIndia,
+
             "UNITED KINGDOM":
               discountUnitedKingdom,
 
@@ -569,14 +575,8 @@ export async function POST(request: Request) {
           };
 
           const discountRate =
-            isIndia
-              ? discountIndia
-              : (
-                  discountMap[
-                    country
-                  ] ??
-                  discountEverywhere
-                );
+            discountMap[country] ??
+            discountEverywhere;
 
           if (
             !Number.isFinite(
@@ -695,7 +695,7 @@ export async function POST(request: Request) {
 
                 total,
 
-                currency: "INR",
+                currency: "USD",
 
                 status: "CONFIRMED",
 
