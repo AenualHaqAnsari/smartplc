@@ -9,7 +9,7 @@ import {
   PayPalButtons,
 } from "@paypal/react-paypal-js";
 import Link from "next/link";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useCart } from "@/components/cart/CartProvider";
 import { useCurrency } from "@/components/currency/CurrencyProvider";
 import { formatCurrency } from "@/lib/currency";
@@ -51,6 +51,7 @@ export default function CheckoutPage() {
 
   const { currency, rates } = useCurrency();
   const paypalCurrency = currency === "INR" ? "USD" : currency;
+  const paypalClientId = process.env.NEXT_PUBLIC_PAYPAL_CLIENT_ID;
   const {
   items,
   subtotal,
@@ -73,6 +74,11 @@ export default function CheckoutPage() {
   });
 
   const [placingOrder, setPlacingOrder] = useState(false);
+  const [paypalError, setPaypalError] = useState("");
+  const [paypalStatus, setPaypalStatus] = useState("");
+  const checkoutFormRef = useRef<HTMLFormElement>(null);
+  const paypalOperationRef = useRef(false);
+  const paypalCompletionRef = useRef(false);
 const [indiaTaxRate, setIndiaTaxRate] =
   useState(17);
 
@@ -181,6 +187,7 @@ const normalizedCustomerCountry = customerCountry.trim().toUpperCase(); const is
      * Razorpay and the future manual payment methods.
      */
     if (paymentMethod === "PAYPAL") {
+      setPaypalError("Use the PayPal button below to continue securely.");
       return;
     }
 
@@ -406,6 +413,7 @@ const normalizedCustomerCountry = customerCountry.trim().toUpperCase(); const is
         </div>
 
         <form
+          ref={checkoutFormRef}
           onSubmit={handlePlaceOrder}
           className="grid gap-12 lg:grid-cols-[1fr_400px]"
         >
@@ -536,24 +544,26 @@ const normalizedCustomerCountry = customerCountry.trim().toUpperCase(); const is
 
     {/* PayPal */}
     <label
-      className={`block cursor-pointer border p-4 transition ${
+      className={`block cursor-pointer border p-4 transition focus-within:ring-2 focus-within:ring-[#0284c7] focus-within:ring-offset-2 ${
         paymentMethod === "PAYPAL"
           ? "border-[#0284c7] bg-[#f1f5f9]"
           : "border-[#cbd5e1] hover:border-[#bda477]"
       }`}
     >
-      <div className="flex items-start gap-3">
+      <div className="flex items-center gap-4">
         <input
           type="radio"
           name="paymentMethod"
           value="PAYPAL"
           checked={paymentMethod === "PAYPAL"}
-          onChange={() => setPaymentMethod("PAYPAL")}
-          className="mt-1"
+          onChange={() => { setPaymentMethod("PAYPAL"); setPaypalError(""); setPaypalStatus(""); }}
+          aria-label="Pay with PayPal"
+          className="h-4 w-4 shrink-0 accent-[#0877b9]"
         />
 
-        <div>
-          <div className="font-semibold">
+        <PaymentBrandIcon method="PAYPAL" />
+        <div className="min-w-0">
+          <div className="font-semibold text-[#17212b]">
             PayPal
           </div>
 
@@ -567,24 +577,26 @@ const normalizedCustomerCountry = customerCountry.trim().toUpperCase(); const is
 
     {/* Razorpay */}
     <label
-      className={`block cursor-pointer border p-4 transition ${
+      className={`block cursor-pointer border p-4 transition focus-within:ring-2 focus-within:ring-[#0284c7] focus-within:ring-offset-2 ${
         paymentMethod === "RAZORPAY"
           ? "border-[#0284c7] bg-[#f1f5f9]"
           : "border-[#cbd5e1] hover:border-[#bda477]"
       }`}
     >
-      <div className="flex items-start gap-3">
+      <div className="flex items-center gap-4">
         <input
           type="radio"
           name="paymentMethod"
           value="RAZORPAY"
           checked={paymentMethod === "RAZORPAY"}
-          onChange={() => setPaymentMethod("RAZORPAY")}
-          className="mt-1"
+          onChange={() => { setPaymentMethod("RAZORPAY"); setPaypalError(""); setPaypalStatus(""); }}
+          aria-label="Pay by card with Razorpay"
+          className="h-4 w-4 shrink-0 accent-[#0877b9]"
         />
 
-        <div>
-          <div className="font-semibold">
+        <PaymentBrandIcon method="RAZORPAY" />
+        <div className="min-w-0">
+          <div className="font-semibold text-[#17212b]">
             Card / Razorpay
           </div>
 
@@ -675,11 +687,10 @@ const normalizedCustomerCountry = customerCountry.trim().toUpperCase(); const is
       </p>
       {currency === "INR" && <p className="mb-4 text-sm text-slate-700">PayPal processes this order in USD: {formatCurrency(total, "USD", rates)}.</p>}
 
-      <PayPalScriptProvider
+      {paypalClientId ? <PayPalScriptProvider
         key={paypalCurrency}
         options={{
-          clientId:
-            process.env.NEXT_PUBLIC_PAYPAL_CLIENT_ID || "",
+          clientId: paypalClientId,
           currency: paypalCurrency,
           intent: "capture",
         }}
@@ -692,6 +703,19 @@ const normalizedCustomerCountry = customerCountry.trim().toUpperCase(); const is
           }}
           disabled={placingOrder || items.length === 0}
           createOrder={async () => {
+            if (paypalOperationRef.current) {
+              throw new Error("PayPal checkout is already in progress.");
+            }
+            if (!checkoutFormRef.current?.reportValidity()) {
+              const message = "Complete the required customer and shipping fields before paying.";
+              setPaypalError(message);
+              throw new Error(message);
+            }
+
+            paypalOperationRef.current = true;
+            paypalCompletionRef.current = false;
+            setPaypalError("");
+            setPaypalStatus("Preparing secure PayPal checkout…");
             setPlacingOrder(true);
 
             try {
@@ -727,10 +751,16 @@ const normalizedCustomerCountry = customerCountry.trim().toUpperCase(); const is
               );
 
               setPlacingOrder(false);
+              paypalOperationRef.current = false;
+              setPaypalStatus("");
+              setPaypalError(error instanceof Error ? error.message : "Unable to create PayPal order.");
               throw error;
             }
           }}
           onApprove={async (data) => {
+            if (paypalCompletionRef.current) return;
+            paypalCompletionRef.current = true;
+            setPaypalStatus("Verifying payment and placing your order…");
             try {
               if (!data.orderID) {
                 throw new Error(
@@ -773,17 +803,21 @@ const normalizedCustomerCountry = customerCountry.trim().toUpperCase(); const is
                 error
               );
 
-              alert(
-                error instanceof Error
-                  ? error.message
-                  : "PayPal payment completed, but we could not complete your order. Please contact us."
-              );
-
+              setPaypalError(error instanceof Error
+                ? error.message
+                : "PayPal payment completed, but we could not complete your order. Please contact us.");
               setPlacingOrder(false);
+              paypalOperationRef.current = false;
+              paypalCompletionRef.current = false;
+              setPaypalStatus("");
             }
           }}
           onCancel={() => {
             setPlacingOrder(false);
+            paypalOperationRef.current = false;
+            paypalCompletionRef.current = false;
+            setPaypalStatus("");
+            setPaypalError("Payment cancelled. Your cart is unchanged.");
           }}
           onError={(error) => {
             console.error(
@@ -791,19 +825,21 @@ const normalizedCustomerCountry = customerCountry.trim().toUpperCase(); const is
               error
             );
 
-            alert(
-              "Unable to complete PayPal payment. Please try again."
-            );
-
+            setPaypalError(error instanceof Error ? error.message : "Unable to complete PayPal payment. Please try again.");
             setPlacingOrder(false);
+            paypalOperationRef.current = false;
+            paypalCompletionRef.current = false;
+            setPaypalStatus("");
           }}
         />
-      </PayPalScriptProvider>
+      </PayPalScriptProvider> : <p className="rounded border border-red-200 bg-red-50 p-3 text-sm text-red-800" role="alert">PayPal is temporarily unavailable. Please choose another payment method.</p>}
+      {paypalStatus && <p className="mt-3 text-sm text-[#475569]" role="status" aria-live="polite">{paypalStatus}</p>}
+      {paypalError && <p className="mt-3 rounded border border-red-200 bg-red-50 p-3 text-sm text-red-800" role="alert">{paypalError}</p>}
     </div>
   )}
 </section>
 
-            <button
+            {paymentMethod !== "PAYPAL" && <button
               type="submit"
               disabled={placingOrder}
               className="w-full bg-[#0877b9] px-8 py-5 text-sm font-bold uppercase tracking-[0.2em] text-[#ffffff] transition hover:bg-[#075985] disabled:cursor-not-allowed disabled:opacity-50"
@@ -811,7 +847,7 @@ const normalizedCustomerCountry = customerCountry.trim().toUpperCase(); const is
               {placingOrder
                 ? "Placing Order..."
                 : "Place Order"}
-            </button>
+            </button>}
           </div>
 
           {/* Order Summary */}
@@ -974,6 +1010,29 @@ function Field({
         className="w-full border border-[#cbd5e1] bg-[#ffffff] px-4 py-3 text-[#17212b] outline-none transition focus:border-[#0284c7]"
       />
     </label>
+  );
+}
+
+function PaymentBrandIcon({ method }: { method: "PAYPAL" | "RAZORPAY" }) {
+  if (method === "PAYPAL") {
+    return (
+      <span className="flex h-9 w-[104px] shrink-0 items-center" aria-hidden="true">
+        <svg viewBox="0 0 104 36" className="h-8 w-full" role="img">
+          <path d="M13 5h11c7 0 10 4 9 10-1 7-5 11-13 11h-4l-2 7H7l5-28Zm5 15h3c3 0 5-2 5-5 0-2-1-3-4-3h-2l-2 8Z" fill="#003087" />
+          <path d="M21 9h11c7 0 10 4 9 10-1 7-5 11-13 11h-4l-2 5h-7l5-26Zm5 15h3c3 0 5-2 5-5 0-2-1-3-4-3h-2l-2 8Z" fill="#009cde" />
+          <text x="49" y="24" fill="#173b67" fontFamily="Arial, sans-serif" fontSize="16" fontWeight="700">PayPal</text>
+        </svg>
+      </span>
+    );
+  }
+
+  return (
+    <span className="flex h-9 w-[104px] shrink-0 items-center" aria-hidden="true">
+      <svg viewBox="0 0 104 36" className="h-8 w-full" role="img">
+        <path d="M8 5h13l-5 26H5l3-16-5 7 2-10 3-7Zm13 0h12L21 18l8 13H16l-7-12L21 5Z" fill="#0b72e7" />
+        <text x="37" y="24" fill="#17212b" fontFamily="Arial, sans-serif" fontSize="14" fontWeight="700">Razorpay</text>
+      </svg>
+    </span>
   );
 }
 
