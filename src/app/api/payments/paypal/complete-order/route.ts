@@ -4,6 +4,7 @@ import { sendOrderConfirmationEmail } from "@/lib/email";
 import {
   getPayPalAccessToken,
   getPayPalApiBase,
+  logPayPalApiError,
 } from "@/lib/payments/paypal/paypal";
 
 type CustomerData = {
@@ -20,42 +21,6 @@ type CustomerData = {
 };
 
 type CurrencyCode = "USD" | "GBP" | "EUR";
-
-async function getExchangeRate(
-  currency: CurrencyCode
-): Promise<number> {
-  if (currency === "USD") {
-    return 1;
-  }
-
-  const response = await fetch(
-    "https://api.frankfurter.dev/v2/rates?base=USD&quotes=GBP,EUR",
-    {
-      cache: "no-store",
-    }
-  );
-
-  if (!response.ok) {
-    throw new Error("Unable to load exchange rates.");
-  }
-
-  const data = await response.json();
-
-  const rateItem = data.find(
-    (item: { quote?: string }) =>
-      item.quote === currency
-  );
-
-  const rate = Number(rateItem?.rate);
-
-  if (!Number.isFinite(rate) || rate <= 0) {
-    throw new Error(
-      `Unable to load ${currency} exchange rate.`
-    );
-  }
-
-  return rate;
-}
 
 export async function POST(request: Request) {
   try {
@@ -146,6 +111,13 @@ export async function POST(request: Request) {
       });
 
     if (existingPayment) {
+      if (existingPayment.order.customerId !== customerId) {
+        return Response.json(
+          { error: "PayPal order could not be completed." },
+          { status: 409 }
+        );
+      }
+
       return Response.json({
         success: true,
         alreadyProcessed: true,
@@ -240,10 +212,7 @@ export async function POST(request: Request) {
       await paypalOrderResponse.json();
 
     if (!paypalOrderResponse.ok) {
-      console.error(
-        "PAYPAL ORDER FETCH ERROR:",
-        paypalOrder
-      );
+      logPayPalApiError("ORDER FETCH", paypalOrderResponse, paypalOrder);
 
       return Response.json(
         {
@@ -269,6 +238,33 @@ export async function POST(request: Request) {
     const paypalPurchaseUnit =
       paypalOrder.purchase_units?.[0];
 
+    const customIdParts = String(
+      paypalPurchaseUnit?.custom_id || ""
+    ).split("|");
+    const [customBrand, customVersion, customCustomerId, customCurrency, customTotal, customRate] =
+      customIdParts;
+    const currency = customCurrency as CurrencyCode;
+    const orderTotalAtCreation = Number(customTotal);
+    const exchangeRateAtCreation = Number(customRate);
+
+    if (
+      customIdParts.length !== 6 ||
+      customBrand !== "MA" ||
+      customVersion !== "1" ||
+      customCustomerId !== customerId ||
+      typeof customCurrency !== "string" ||
+      !["USD", "GBP", "EUR"].includes(customCurrency) ||
+      !Number.isFinite(orderTotalAtCreation) ||
+      orderTotalAtCreation <= 0 ||
+      !Number.isFinite(exchangeRateAtCreation) ||
+      exchangeRateAtCreation <= 0
+    ) {
+      return Response.json(
+        { error: "PayPal order could not be completed." },
+        { status: 409 }
+      );
+    }
+
     const paypalAmount =
       paypalPurchaseUnit?.amount;
 
@@ -284,9 +280,7 @@ export async function POST(request: Request) {
 
     if (
       paypalCurrency !==
-      String(
-        body.currency || ""
-      ).toUpperCase()
+      currency
     ) {
       return Response.json(
         {
@@ -660,30 +654,17 @@ export async function POST(request: Request) {
       );
     }
 
-    const currency =
-      String(
-        body.currency || "USD"
-      ).toUpperCase() as CurrencyCode;
-
-    if (
-      currency !== "USD" &&
-      currency !== "GBP" &&
-      currency !== "EUR"
-    ) {
-      throw new Error(
-        "Unsupported currency."
+    if (Math.abs(total - orderTotalAtCreation) > 0.01) {
+      return Response.json(
+        { error: "PayPal order no longer matches the current cart." },
+        { status: 409 }
       );
     }
-
-    const exchangeRate =
-      await getExchangeRate(
-        currency
-      );
 
     const expectedPayPalAmount =
       Math.round(
         total *
-        exchangeRate *
+        exchangeRateAtCreation *
         100
       ) / 100;
 
@@ -708,7 +689,7 @@ export async function POST(request: Request) {
           tax,
           total,
           currency,
-          exchangeRate,
+          exchangeRate: exchangeRateAtCreation,
           expectedPayPalAmount,
           paypalValue,
         }
@@ -749,10 +730,7 @@ export async function POST(request: Request) {
       await captureResponse.json();
 
     if (!captureResponse.ok) {
-      console.error(
-        "PAYPAL CAPTURE ERROR:",
-        captureData
-      );
+      logPayPalApiError("CAPTURE", captureResponse, captureData);
 
       return Response.json(
         {
@@ -855,6 +833,7 @@ export async function POST(request: Request) {
     const existingCapture =
       await prisma.payment.findFirst({
         where: {
+          provider: "PAYPAL",
           transactionId:
             captureId,
         },
@@ -864,6 +843,13 @@ export async function POST(request: Request) {
       });
 
     if (existingCapture) {
+      if (existingCapture.order.customerId !== customerId) {
+        return Response.json(
+          { error: "PayPal order could not be completed." },
+          { status: 409 }
+        );
+      }
+
       return Response.json({
         success: true,
         alreadyProcessed: true,
@@ -943,7 +929,7 @@ export async function POST(request: Request) {
 
                 total,
 
-                currency,
+                currency: "USD",
 
                 status:
                   "CONFIRMED",

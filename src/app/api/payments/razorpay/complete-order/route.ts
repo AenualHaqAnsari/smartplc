@@ -1,5 +1,6 @@
 import crypto from "crypto";
 import Razorpay from "razorpay";
+import { Prisma } from "@/generated/prisma/client";
 import { prisma } from "@/lib/prisma";
 import { getCustomerId } from "@/lib/customer-auth";
 import { sendOrderConfirmationEmail } from "@/lib/email";
@@ -17,7 +18,58 @@ type CustomerData = {
   country: string;
 };
 
+const RAZORPAY_TRANSACTION_ID_INDEX =
+  "Payment_razorpay_transactionId_key";
+
+function getStoredRazorpayOrderId(
+  rawResponse: unknown
+): string | null {
+  if (
+    !rawResponse ||
+    typeof rawResponse !== "object" ||
+    Array.isArray(rawResponse)
+  ) {
+    return null;
+  }
+
+  const orderId = (
+    rawResponse as Record<string, unknown>
+  ).razorpayOrderId;
+
+  return typeof orderId === "string"
+    ? orderId
+    : null;
+}
+
+function isRazorpayTransactionIdConflict(
+  error: unknown
+): error is Prisma.PrismaClientKnownRequestError {
+  if (
+    !(error instanceof Prisma.PrismaClientKnownRequestError) ||
+    error.code !== "P2002"
+  ) {
+    return false;
+  }
+
+  const target = error.meta?.target;
+  if (target === RAZORPAY_TRANSACTION_ID_INDEX) {
+    return true;
+  }
+
+  return (
+    Array.isArray(target) &&
+    target.length === 1 &&
+    target[0] === "transactionId" &&
+    (error.meta?.modelName === undefined ||
+      error.meta.modelName === "Payment")
+  );
+}
+
 export async function POST(request: Request) {
+  let authenticatedCustomerId: string | null = null;
+  let verifiedRazorpayOrderId: string | null = null;
+  let verifiedRazorpayPaymentId: string | null = null;
+
   try {
     const keyId = process.env.RAZORPAY_KEY_ID;
     const secret = process.env.RAZORPAY_KEY_SECRET;
@@ -44,6 +96,7 @@ export async function POST(request: Request) {
         { status: 401 }
       );
     }
+    authenticatedCustomerId = customerId;
 
     const body = await request.json();
 
@@ -126,6 +179,8 @@ export async function POST(request: Request) {
         { status: 400 }
       );
     }
+    verifiedRazorpayOrderId = razorpayOrderId;
+    verifiedRazorpayPaymentId = razorpayPaymentId;
 
     /*
      * Prevent duplicate processing of the
@@ -134,6 +189,7 @@ export async function POST(request: Request) {
     const existingPayment =
       await prisma.payment.findFirst({
         where: {
+          provider: "RAZORPAY",
           transactionId:
             razorpayPaymentId,
         },
@@ -143,6 +199,21 @@ export async function POST(request: Request) {
       });
 
     if (existingPayment) {
+      if (
+        existingPayment.order.customerId !== customerId ||
+        getStoredRazorpayOrderId(
+          existingPayment.rawResponse
+        ) !== razorpayOrderId
+      ) {
+        return Response.json(
+          {
+            error:
+              "Payment completion conflicts with an existing record.",
+          },
+          { status: 409 }
+        );
+      }
+
       return Response.json({
         success: true,
         alreadyProcessed: true,
@@ -977,6 +1048,79 @@ export async function POST(request: Request) {
         order.id,
     });
   } catch (error) {
+    if (
+      isRazorpayTransactionIdConflict(error) &&
+      authenticatedCustomerId &&
+      verifiedRazorpayOrderId &&
+      verifiedRazorpayPaymentId
+    ) {
+      try {
+        const winningPayment =
+          await prisma.payment.findFirst({
+            where: {
+              provider: "RAZORPAY",
+              transactionId:
+                verifiedRazorpayPaymentId,
+            },
+            include: {
+              order: true,
+            },
+          });
+
+        if (!winningPayment) {
+          console.error(
+            "RAZORPAY UNIQUE PAYMENT CONFLICT WITHOUT WINNING PAYMENT."
+          );
+
+          return Response.json(
+            {
+              error:
+                "Unable to confirm the completed payment. Please contact support.",
+            },
+            { status: 500 }
+          );
+        }
+
+        if (
+          winningPayment.order.customerId !==
+            authenticatedCustomerId ||
+          getStoredRazorpayOrderId(
+            winningPayment.rawResponse
+          ) !== verifiedRazorpayOrderId
+        ) {
+          return Response.json(
+            {
+              error:
+                "Payment completion conflicts with an existing record.",
+            },
+            { status: 409 }
+          );
+        }
+
+        return Response.json({
+          success: true,
+          alreadyProcessed: true,
+          orderNumber:
+            winningPayment.order.orderNumber,
+          orderId:
+            winningPayment.order.id,
+        });
+      } catch (lookupError) {
+        console.error(
+          "RAZORPAY WINNING PAYMENT LOOKUP ERROR:",
+          lookupError
+        );
+
+        return Response.json(
+          {
+            error:
+              "Unable to confirm the completed payment. Please try again.",
+          },
+          { status: 500 }
+        );
+      }
+    }
+
     console.error(
       "RAZORPAY COMPLETE ORDER ERROR:",
       error

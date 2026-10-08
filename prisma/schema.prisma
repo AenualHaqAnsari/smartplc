@@ -1,6 +1,7 @@
 generator client {
-  provider = "prisma-client"
-  output   = "../src/generated/prisma"
+  provider        = "prisma-client"
+  output          = "../src/generated/prisma"
+  previewFeatures = ["partialIndexes"]
 }
 
 datasource db {
@@ -410,6 +411,7 @@ model Payment {
 
   @@index([orderId])
   @@index([transactionId])
+  @@unique([transactionId], where: raw("provider = 'RAZORPAY' AND \"transactionId\" IS NOT NULL"), map: "Payment_razorpay_transactionId_key")
 }
 
 model Coupon {

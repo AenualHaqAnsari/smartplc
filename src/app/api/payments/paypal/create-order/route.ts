@@ -3,6 +3,7 @@ import { getCustomerId } from "@/lib/customer-auth";
 import {
   getPayPalAccessToken,
   getPayPalApiBase,
+  logPayPalApiError,
 } from "@/lib/payments/paypal/paypal";
 
 type CurrencyCode = "USD" | "GBP" | "EUR";
@@ -417,10 +418,7 @@ export async function POST(request: Request) {
 
           purchase_units: [
             {
-              custom_id:
-                `MA|${currency}|${total.toFixed(
-                  2
-                )}|${exchangeRate}`,
+              custom_id: `MA|1|${customerId}|${currency}|${total.toFixed(2)}|${exchangeRate}`,
 
               amount: {
                 currency_code: currency,
@@ -437,10 +435,7 @@ export async function POST(request: Request) {
       await response.json();
 
     if (!response.ok) {
-      console.error(
-        "PAYPAL CREATE ORDER ERROR:",
-        data
-      );
+      logPayPalApiError("CREATE ORDER", response, data);
 
       return Response.json(
         {

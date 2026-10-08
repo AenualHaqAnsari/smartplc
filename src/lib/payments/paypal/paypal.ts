@@ -37,10 +37,7 @@ export async function getPayPalAccessToken(): Promise<string> {
   const data = await response.json();
 
   if (!response.ok || !data.access_token) {
-    console.error(
-      "PAYPAL AUTH ERROR:",
-      data
-    );
+    logPayPalApiError("AUTH", response, data);
 
     throw new Error(
       "Unable to authenticate with PayPal."
@@ -52,4 +49,38 @@ export async function getPayPalAccessToken(): Promise<string> {
 
 export function getPayPalApiBase(): string {
   return PAYPAL_API_BASE;
+}
+
+export function logPayPalApiError(
+  operation: string,
+  response: Response,
+  data: unknown
+): void {
+  const payload =
+    typeof data === "object" && data !== null
+      ? (data as Record<string, unknown>)
+      : {};
+  const name =
+    typeof payload.name === "string"
+      ? payload.name
+      : typeof payload.error === "string"
+        ? payload.error
+        : undefined;
+  const message =
+    typeof payload.message === "string"
+      ? payload.message
+      : typeof payload.error_description === "string"
+        ? payload.error_description
+        : undefined;
+  const debugId =
+    response.headers.get("paypal-debug-id") ??
+    response.headers.get("correlation-id") ??
+    undefined;
+
+  console.error(`PAYPAL ${operation} ERROR:`, {
+    httpStatus: response.status,
+    ...(name ? { name } : {}),
+    ...(message ? { message } : {}),
+    ...(debugId ? { debugId } : {}),
+  });
 }

@@ -7,6 +7,7 @@ import Script from "next/script";
 import {
   PayPalScriptProvider,
   PayPalButtons,
+  usePayPalScriptReducer,
 } from "@paypal/react-paypal-js";
 import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
@@ -51,7 +52,9 @@ export default function CheckoutPage() {
 
   const { currency, rates } = useCurrency();
   const paypalCurrency = currency === "INR" ? "USD" : currency;
-  const paypalClientId = process.env.NEXT_PUBLIC_PAYPAL_CLIENT_ID;
+  const [paypalClientId, setPaypalClientId] = useState("");
+  const [paypalConfigStatus, setPaypalConfigStatus] =
+    useState<"loading" | "ready" | "error">("loading");
   const {
   items,
   subtotal,
@@ -79,6 +82,42 @@ export default function CheckoutPage() {
   const checkoutFormRef = useRef<HTMLFormElement>(null);
   const paypalOperationRef = useRef(false);
   const paypalCompletionRef = useRef(false);
+
+  useEffect(() => {
+    const controller = new AbortController();
+
+    fetch("/api/payments/paypal/config", {
+      cache: "no-store",
+      signal: controller.signal,
+    })
+      .then(async (response) => {
+        if (!response.ok) {
+          throw new Error(`PayPal config HTTP ${response.status}`);
+        }
+
+        return response.json();
+      })
+      .then((data: { clientId?: string }) => {
+        if (!data.clientId) {
+          throw new Error("PayPal client ID is unavailable.");
+        }
+
+        setPaypalClientId(data.clientId);
+        setPaypalConfigStatus("ready");
+      })
+      .catch((error: unknown) => {
+        if (controller.signal.aborted) return;
+
+        console.error(
+          "PAYPAL CONFIG LOAD ERROR:",
+          error instanceof Error ? error.message : "Unknown error"
+        );
+        setPaypalConfigStatus("error");
+      });
+
+    return () => controller.abort();
+  }, []);
+
 const [indiaTaxRate, setIndiaTaxRate] =
   useState(17);
 
@@ -687,7 +726,17 @@ const normalizedCustomerCountry = customerCountry.trim().toUpperCase(); const is
       </p>
       {currency === "INR" && <p className="mb-4 text-sm text-slate-700">PayPal processes this order in USD: {formatCurrency(total, "USD", rates)}.</p>}
 
-      {paypalClientId ? <PayPalScriptProvider
+      {paypalConfigStatus === "loading" && (
+        <p className="text-sm text-slate-700" role="status">
+          Loading PayPal checkout…
+        </p>
+      )}
+      {paypalConfigStatus === "error" && (
+        <p className="rounded border border-red-200 bg-red-50 p-3 text-sm text-red-800" role="alert">
+          PayPal checkout could not be initialized. Please try again or choose another payment method.
+        </p>
+      )}
+      {paypalConfigStatus === "ready" && <PayPalScriptProvider
         key={paypalCurrency}
         options={{
           clientId: paypalClientId,
@@ -695,6 +744,7 @@ const normalizedCustomerCountry = customerCountry.trim().toUpperCase(); const is
           intent: "capture",
         }}
       >
+        <PayPalScriptStatus />
         <PayPalButtons
           style={{
             layout: "vertical",
@@ -832,7 +882,7 @@ const normalizedCustomerCountry = customerCountry.trim().toUpperCase(); const is
             setPaypalStatus("");
           }}
         />
-      </PayPalScriptProvider> : <p className="rounded border border-red-200 bg-red-50 p-3 text-sm text-red-800" role="alert">PayPal is temporarily unavailable. Please choose another payment method.</p>}
+      </PayPalScriptProvider>}
       {paypalStatus && <p className="mt-3 text-sm text-[#475569]" role="status" aria-live="polite">{paypalStatus}</p>}
       {paypalError && <p className="mt-3 rounded border border-red-200 bg-red-50 p-3 text-sm text-red-800" role="alert">{paypalError}</p>}
     </div>
@@ -1011,6 +1061,28 @@ function Field({
       />
     </label>
   );
+}
+
+function PayPalScriptStatus() {
+  const [{ isPending, isRejected }] = usePayPalScriptReducer();
+
+  if (isPending) {
+    return (
+      <p className="mb-3 text-sm text-slate-700" role="status" aria-live="polite">
+        Loading PayPal payment options…
+      </p>
+    );
+  }
+
+  if (isRejected) {
+    return (
+      <p className="mb-3 rounded border border-red-200 bg-red-50 p-3 text-sm text-red-800" role="alert">
+        PayPal could not load. Please refresh the page or choose another payment method.
+      </p>
+    );
+  }
+
+  return null;
 }
 
 function PaymentBrandIcon({ method }: { method: "PAYPAL" | "RAZORPAY" }) {
