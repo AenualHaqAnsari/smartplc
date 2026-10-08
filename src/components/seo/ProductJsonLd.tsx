@@ -74,14 +74,6 @@ export default function ProductJsonLd({
       "@type": "Offer",
       price: (hasSale ? salePrice : originalPrice).toFixed(2),
       priceCurrency: "USD",
-      ...(hasSale ? {
-        priceSpecification: {
-          "@type": "UnitPriceSpecification",
-          priceType: "https://schema.org/StrikethroughPrice",
-          price: originalPrice.toFixed(2),
-          priceCurrency: "USD",
-        },
-      } : {}),
       availability: Number(variant.stock) > 0
         ? "https://schema.org/InStock"
         : "https://schema.org/OutOfStock",

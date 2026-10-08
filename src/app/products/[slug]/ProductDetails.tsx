@@ -60,6 +60,7 @@ type ProductDetailsProps = {
   product: Product & {
     reviews: ProductReview[];
   };
+  initialDiscountRate?: number;
 };
 const measurements = [
   ["height", "Height"],
@@ -88,6 +89,7 @@ function getSpecificationEntries(value: string): [string, string | number | bool
 
 export default function ProductDetails({
   product,
+  initialDiscountRate = 0,
 }: ProductDetailsProps) {
   const { currency, rates } = useCurrency();
   const specificationEntries = getSpecificationEntries(product.specifications);
@@ -107,7 +109,7 @@ export default function ProductDetails({
       discountSpain: 0,
       discountSwitzerland: 0,
       discountUnitedStates: 0,
-      discountEverywhere: 0,
+      discountEverywhere: initialDiscountRate,
     });
 
   useEffect(() => {

@@ -370,17 +370,6 @@ export default async function ProductPage({
     { name: product.category.name, url: `${process.env.NEXT_PUBLIC_SITE_URL || ""}/products?category=${product.category.slug}` },
     { name: product.name, url: `${process.env.NEXT_PUBLIC_SITE_URL || ""}/products/${product.slug}` },
   ];
-  const requestHeaders = await headers();
-  const visitorCountry = (
-    requestHeaders.get("x-vercel-ip-country") ||
-    requestHeaders.get("cf-ipcountry") ||
-    requestHeaders.get("x-country") ||
-    "US"
-  ).trim().toUpperCase();
-  const googleDiscountRate = await getCountryDiscount(
-    visitorCountry === "IN" ? "IN" : "US"
-  );
-
   return (
     <>
       <BreadcrumbJsonLd items={breadcrumbItems} />
@@ -392,7 +381,7 @@ export default async function ProductPage({
         images={product.images.map((image) => image.url)}
         priceUSD={product.basePrice.toString()}
         compareAtPriceUSD={product.compareAtPrice?.toString() ?? null}
-        discountRate={googleDiscountRate}
+        discountRate={discountRate}
         inStock={product.variants.some((variant) => variant.stock > 0)}
         customAvailable={product.variants.some((variant) => variant.customAvailable)}
         variants={product.variants.map((variant) => ({
@@ -417,7 +406,8 @@ export default async function ProductPage({
         }))}
       />
       <ProductDetails
-      product={{
+        initialDiscountRate={discountRate}
+        product={{
   id: product.id,
   name: product.name,
   slug: product.slug,
