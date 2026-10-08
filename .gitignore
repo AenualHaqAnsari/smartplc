@@ -47,3 +47,6 @@ medieval_armors_production_backup.dump
 
 # Production product image uploads
 /public/uploads/products/
+
+# Runtime product upload storage
+/public/uploads/
