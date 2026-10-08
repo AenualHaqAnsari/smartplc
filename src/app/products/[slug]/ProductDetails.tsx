@@ -8,6 +8,7 @@ import { useCart } from "@/components/cart/CartProvider";
 import CurrencySelector from "@/components/currency/CurrencySelector";
 import { useCurrency } from "@/components/currency/CurrencyProvider";
 import { formatCurrency } from "@/lib/currency";
+import ProductVideoGallery from "./components/ProductVideoGallery";
 
 type ProductVariant = {
   id: string;
@@ -41,6 +42,8 @@ type Product = {
     altText: string | null;
     isPrimary: boolean;
   }[];
+
+  videos: { id: string; url: string; title: string | null; sortOrder: number }[];
 
   variants: ProductVariant[];
 };
@@ -1293,6 +1296,12 @@ variantName:
         
 
         </div></section>
+
+      <ProductVideoGallery
+        videos={product.videos}
+        poster={product.images.find((image) => image.isPrimary)?.url ?? product.images[0]?.url}
+        productName={product.name}
+      />
 
       </main>
   );

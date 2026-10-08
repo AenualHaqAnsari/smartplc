@@ -342,6 +342,9 @@ export default async function ProductPage({
           sortOrder: "asc",
         },
       },
+      videos: {
+        orderBy: [{ sortOrder: "asc" }, { createdAt: "asc" }],
+      },
       variants: {
         orderBy: {
           price: "asc",
@@ -432,6 +435,7 @@ export default async function ProductPage({
           altText: image.altText,
           isPrimary: image.isPrimary,
         })),
+        videos: product.videos.map((video) => ({ id: video.id, url: video.url, title: video.title, sortOrder: video.sortOrder })),
         variants: product.variants.map((variant) => ({
           id: variant.id,
           name: variant.name,

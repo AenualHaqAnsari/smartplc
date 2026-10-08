@@ -103,6 +103,7 @@ model Product {
   category   Category @relation(fields: [categoryId], references: [id])
 
   images    ProductImage[]
+  videos    ProductVideo[]
   variants  ProductVariant[]
   cartItems CartItem[]
   reviews   Review[]
@@ -412,6 +413,21 @@ model Payment {
   @@index([orderId])
   @@index([transactionId])
   @@unique([transactionId], where: raw("provider = 'RAZORPAY' AND \"transactionId\" IS NOT NULL"), map: "Payment_razorpay_transactionId_key")
+}
+
+model ProductVideo {
+  id        String   @id @default(cuid())
+  url       String
+  title     String?
+  sortOrder Int      @default(0)
+
+  productId String
+  product   Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+
+  @@index([productId])
+  @@index([sortOrder])
 }
 
 model Coupon {

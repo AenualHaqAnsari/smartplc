@@ -7,6 +7,7 @@ import VariantManager from "./VariantManager";
 import ImageManager from "./ImageManager";
 import StatusManager from "./StatusManager";
 import ProductEditor from "./ProductEditor";
+import VideoManager from "./VideoManager";
 
 export default async function EditProductPage({
   params,
@@ -32,6 +33,7 @@ export default async function EditProductPage({
           sortOrder: "asc",
         },
       },
+      videos: { orderBy: [{ sortOrder: "asc" }, { createdAt: "asc" }] },
       variants: {
         orderBy: {
           createdAt: "asc",
@@ -278,6 +280,14 @@ export default async function EditProductPage({
       })
     )}
   />
+</section>
+<section className="mt-7 border border-[#e2e8f0] bg-[#ffffff] p-6">
+  <div>
+    <p className="text-xs uppercase tracking-[0.25em] text-[#0369a1]">Media</p>
+    <h3 className="mt-1.5 font-serif text-xl font-bold tracking-wide">PRODUCT VIDEOS</h3>
+    <p className="mt-2 text-sm text-[#475569]">Upload working machine and product demonstration videos.</p>
+  </div>
+  <VideoManager productId={product.id} videos={product.videos.map((video) => ({ ...video, createdAt: video.createdAt.toISOString() }))} />
 </section>
         {/* Variants */}
         {/* Variants */}
