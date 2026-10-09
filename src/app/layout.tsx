@@ -11,6 +11,7 @@ import Script from "next/script";
 const sans=Geist({variable:"--font-geist-sans",subsets:["latin"]});
 const mono=Geist_Mono({variable:"--font-geist-mono",subsets:["latin"]});
 export const metadata:Metadata={
+ verification: { google: "JXOBfqE_AHPcuOz2x785h5_r0rNUH2b8D_-l87grxKI" },
  metadataBase:new URL(process.env.NEXT_PUBLIC_SITE_URL||"https://smartplcsolutions.com"),
  title:{default:"Industrial Automation Products & Services | Smart PLC Solutions",template:"%s | Smart PLC Solutions"},
  description:"Industrial automation products and engineering services for PLC, HMI, SCADA, VFD, servo, sensors, industrial communication and control panels.",
