@@ -5,10 +5,9 @@ import SiteFooter from "@/components/site/SiteFooter";
 
 import Script from "next/script";
 import {
-  PayPalScriptProvider,
-  PayPalButtons,
-  usePayPalScriptReducer,
-} from "@paypal/react-paypal-js";
+  PayPalProvider,
+  PayPalGuestPaymentButton,
+} from "@paypal/react-paypal-js/sdk-v6";
 import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
 import { useCart } from "@/components/cart/CartProvider";
@@ -736,153 +735,119 @@ const normalizedCustomerCountry = customerCountry.trim().toUpperCase(); const is
           PayPal checkout could not be initialized. Please try again or choose another payment method.
         </p>
       )}
-      {paypalConfigStatus === "ready" && <PayPalScriptProvider
-        key={paypalCurrency}
-        options={{
-          clientId: paypalClientId,
-          currency: paypalCurrency,
-          intent: "capture",
-        }}
-      >
-        <PayPalScriptStatus />
-        <PayPalButtons
-          style={{
-            layout: "vertical",
-            shape: "rect",
-            label: "paypal",
-          }}
-          disabled={placingOrder || items.length === 0}
-          createOrder={async () => {
-            if (paypalOperationRef.current) {
-              throw new Error("PayPal checkout is already in progress.");
-            }
-            if (!checkoutFormRef.current?.reportValidity()) {
-              const message = "Complete the required customer and shipping fields before paying.";
-              setPaypalError(message);
-              throw new Error(message);
-            }
+      {paypalConfigStatus === "ready" && (
+        <PayPalProvider
+          key={paypalCurrency}
+          clientId={paypalClientId}
+          environment="production"
+          components={["paypal-payments", "paypal-guest-payments"]}
+          pageType="checkout"
+        >
+          <PayPalGuestPaymentButton
+            disabled={placingOrder || items.length === 0}
+            createOrder={async () => {
+              if (paypalOperationRef.current) {
+                throw new Error("PayPal checkout is already in progress.");
+              }
 
-            paypalOperationRef.current = true;
-            paypalCompletionRef.current = false;
-            setPaypalError("");
-            setPaypalStatus("Preparing secure PayPal checkout…");
-            setPlacingOrder(true);
+              if (!checkoutFormRef.current?.reportValidity()) {
+                const message = "Complete the required customer and shipping fields before paying.";
+                setPaypalError(message);
+                throw new Error(message);
+              }
 
-            try {
+              paypalOperationRef.current = true;
+              paypalCompletionRef.current = false;
+              setPaypalError("");
+              setPaypalStatus("Preparing secure PayPal checkout…");
+              setPlacingOrder(true);
 
-
-              const response = await fetch(
-                "/api/payments/paypal/create-order",
-                {
+              try {
+                const response = await fetch("/api/payments/paypal/create-order", {
                   method: "POST",
-                  headers: {
-                    "Content-Type": "application/json",
-                  },
-                  body: JSON.stringify({
-                    currency: paypalCurrency,
-                  }),
+                  headers: { "Content-Type": "application/json" },
+                  body: JSON.stringify({ currency: paypalCurrency }),
+                });
+
+                const data = await response.json();
+
+                if (!response.ok || !data.orderID) {
+                  throw new Error(data.error || "Unable to create PayPal order.");
                 }
-              );
 
-              const data = await response.json();
-
-              if (!response.ok || !data.orderID) {
-                throw new Error(
-                  data.error ||
-                    "Unable to create PayPal order."
+                return { orderId: data.orderID };
+              } catch (error) {
+                console.error("PAYPAL CREATE ORDER ERROR:", error);
+                setPlacingOrder(false);
+                paypalOperationRef.current = false;
+                setPaypalStatus("");
+                setPaypalError(
+                  error instanceof Error ? error.message : "Unable to create PayPal order."
                 );
+                throw error;
               }
+            }}
+            onApprove={async (data) => {
+              if (paypalCompletionRef.current) return;
 
-              return data.orderID;
-            } catch (error) {
-              console.error(
-                "PAYPAL CREATE ORDER ERROR:",
-                error
-              );
+              paypalCompletionRef.current = true;
+              setPaypalStatus("Verifying payment and placing your order…");
 
-              setPlacingOrder(false);
-              paypalOperationRef.current = false;
-              setPaypalStatus("");
-              setPaypalError(error instanceof Error ? error.message : "Unable to create PayPal order.");
-              throw error;
-            }
-          }}
-          onApprove={async (data) => {
-            if (paypalCompletionRef.current) return;
-            paypalCompletionRef.current = true;
-            setPaypalStatus("Verifying payment and placing your order…");
-            try {
-              if (!data.orderID) {
-                throw new Error(
-                  "PayPal order ID was not returned."
-                );
-              }
-
-              const response = await fetch(
-                "/api/payments/paypal/complete-order",
-                {
+              try {
+                const response = await fetch("/api/payments/paypal/complete-order", {
                   method: "POST",
-                  headers: {
-                    "Content-Type": "application/json",
-                  },
+                  headers: { "Content-Type": "application/json" },
                   body: JSON.stringify({
                     customer: form,
                     items,
-                    orderID: data.orderID,
+                    orderID: data.orderId,
                     currency: paypalCurrency,
                   }),
+                });
+
+                const result = await response.json();
+
+                if (!response.ok) {
+                  throw new Error(result.error || "PayPal payment verification failed.");
                 }
-              );
 
-              const result = await response.json();
-
-              if (!response.ok) {
-                throw new Error(
-                  result.error ||
-                    "PayPal payment verification failed."
+                clearCart();
+                window.location.href = `/order-confirmation/${result.orderNumber}`;
+              } catch (error) {
+                console.error("PAYPAL COMPLETION ERROR:", error);
+                setPaypalError(
+                  error instanceof Error
+                    ? error.message
+                    : "PayPal payment completed, but we could not complete your order. Please contact us."
                 );
+                setPlacingOrder(false);
+                paypalOperationRef.current = false;
+                paypalCompletionRef.current = false;
+                setPaypalStatus("");
               }
-
-              clearCart();
-
-              window.location.href =
-                `/order-confirmation/${result.orderNumber}`;
-            } catch (error) {
-              console.error(
-                "PAYPAL COMPLETION ERROR:",
-                error
-              );
-
-              setPaypalError(error instanceof Error
-                ? error.message
-                : "PayPal payment completed, but we could not complete your order. Please contact us.");
+            }}
+            onCancel={() => {
               setPlacingOrder(false);
               paypalOperationRef.current = false;
               paypalCompletionRef.current = false;
               setPaypalStatus("");
-            }
-          }}
-          onCancel={() => {
-            setPlacingOrder(false);
-            paypalOperationRef.current = false;
-            paypalCompletionRef.current = false;
-            setPaypalStatus("");
-            setPaypalError("Payment cancelled. Your cart is unchanged.");
-          }}
-          onError={(error) => {
-            console.error(
-              "PAYPAL CHECKOUT ERROR:",
-              error
-            );
-
-            setPaypalError(error instanceof Error ? error.message : "Unable to complete PayPal payment. Please try again.");
-            setPlacingOrder(false);
-            paypalOperationRef.current = false;
-            paypalCompletionRef.current = false;
-            setPaypalStatus("");
-          }}
-        />
-      </PayPalScriptProvider>}
+              setPaypalError("Payment cancelled. Your cart is unchanged.");
+            }}
+            onError={(error) => {
+              console.error("PAYPAL CHECKOUT ERROR:", error);
+              setPaypalError(
+                error instanceof Error
+                  ? error.message
+                  : "Unable to complete PayPal payment. Please try again."
+              );
+              setPlacingOrder(false);
+              paypalOperationRef.current = false;
+              paypalCompletionRef.current = false;
+              setPaypalStatus("");
+            }}
+          />
+        </PayPalProvider>
+      )}
       {paypalStatus && <p className="mt-3 text-sm text-[#475569]" role="status" aria-live="polite">{paypalStatus}</p>}
       {paypalError && <p className="mt-3 rounded border border-red-200 bg-red-50 p-3 text-sm text-red-800" role="alert">{paypalError}</p>}
     </div>
@@ -1061,28 +1026,6 @@ function Field({
       />
     </label>
   );
-}
-
-function PayPalScriptStatus() {
-  const [{ isPending, isRejected }] = usePayPalScriptReducer();
-
-  if (isPending) {
-    return (
-      <p className="mb-3 text-sm text-slate-700" role="status" aria-live="polite">
-        Loading PayPal payment options…
-      </p>
-    );
-  }
-
-  if (isRejected) {
-    return (
-      <p className="mb-3 rounded border border-red-200 bg-red-50 p-3 text-sm text-red-800" role="alert">
-        PayPal could not load. Please refresh the page or choose another payment method.
-      </p>
-    );
-  }
-
-  return null;
 }
 
 function PaymentBrandIcon({ method }: { method: "PAYPAL" | "RAZORPAY" }) {
