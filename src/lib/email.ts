@@ -133,7 +133,8 @@ export async function sendOrderConfirmationEmail({
   }
 }export type QuoteRequestEmailData = {
   name: string; company: string; email: string; phone: string;
-  productService: string; requirement: string; quantity?: number; message: string;
+  productService: string; requirement: string; city?: string; projectLocation?: string; industry?: string;
+  equipmentModels?: string; quantity?: number; message: string;
 };
 
 export async function sendQuoteRequestEmail(data: QuoteRequestEmailData) {
@@ -150,6 +151,9 @@ export async function sendQuoteRequestEmail(data: QuoteRequestEmailData) {
   const rows = [
     ["Name", data.name], ["Company", data.company], ["Email", data.email],
     ["Phone", data.phone], ["Product or service", data.productService],
+    ["City", data.city || "Not specified"], ["Project / site location", data.projectLocation || "Not specified"],
+    ["Industry", data.industry || "Not specified"],
+    ["Existing equipment models", data.equipmentModels || "Not specified"],
     ["Requirement", data.requirement], ["Quantity", data.quantity ? String(data.quantity) : "Not specified"],
     ["Message", data.message],
   ].map(([label, value]) => `<tr><th align="left" style="padding:10px;border-bottom:1px solid #e2e8f0">${escapeHtml(label)}</th><td style="padding:10px;border-bottom:1px solid #e2e8f0">${escapeHtml(value)}</td></tr>`).join("");
