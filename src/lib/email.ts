@@ -153,7 +153,7 @@ export async function sendQuoteRequestEmail(data: QuoteRequestEmailData) {
     ["Phone", data.phone], ["Product or service", data.productService],
     ["City", data.city || "Not specified"], ["Project / site location", data.projectLocation || "Not specified"],
     ["Industry", data.industry || "Not specified"],
-    ["Existing equipment models", data.equipmentModels || "Not specified"],
+    ["Exact model number / installed equipment", data.equipmentModels || "Not specified"],
     ["Requirement", data.requirement], ["Quantity", data.quantity ? String(data.quantity) : "Not specified"],
     ["Message", data.message],
   ].map(([label, value]) => `<tr><th align="left" style="padding:10px;border-bottom:1px solid #e2e8f0">${escapeHtml(label)}</th><td style="padding:10px;border-bottom:1px solid #e2e8f0">${escapeHtml(value)}</td></tr>`).join("");

@@ -20,7 +20,7 @@ export default async function AutomationContentPage({ page, family }: { page: Se
   const basePath = family === "application" ? "/applications" : family === "saudi-service" ? "/saudi-arabia" : "";
   const isProductEnquiry = page.group === "Saudi Arabia Product Enquiries";
   const quoteHref = isProductEnquiry
-    ? `/request-quote?type=product&subject=${encodeURIComponent(page.h1)}`
+    ? `/request-quote?type=product&category=${encodeURIComponent("Delta and Siemens product enquiry")}`
     : `/request-quote?type=service&service=${encodeURIComponent(page.serviceLinks[0]?.service ?? "Machine Automation")}&subject=${encodeURIComponent(page.h1)}`;
   const crumbs = [{ name: "Home", url: siteUrl }, ...(family === "saudi-service" && page.slug !== "industrial-automation" ? [{ name: "Saudi Arabia automation services", url: `${siteUrl}/saudi-arabia/industrial-automation` }] : [{ name: "Industrial Automation", url: `${siteUrl}/industrial-automation` }]), ...(family === "application" ? [{ name: "Applications", url: `${siteUrl}/applications` }] : []), { name: page.h1, url: `${siteUrl}${basePath}/${page.slug}` }];
   const sectionClass = "mx-auto max-w-6xl px-5 py-12 sm:px-8";
