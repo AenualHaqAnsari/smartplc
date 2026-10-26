@@ -129,6 +129,9 @@ export default function AboutPage() {
             <p className="mt-4 text-sm leading-7 text-slate-600">
               The product range covers PLCs, HMIs, drives, servo systems, sensors, control-panel components and industrial communication equipment. Engineering enquiries can include programming, integration, commissioning, troubleshooting, retrofit and machine modification work. Product availability, specifications and service scope are confirmed during review.
             </p>
+            <p className="mt-4 text-sm leading-7 text-slate-600">
+              For product delivery or engineering enquiries involving European project locations, see our <Link href="/europe/industrial-automation" className="font-semibold text-sky-800 underline decoration-sky-300 underline-offset-4">Europe industrial automation information</Link>. Availability and arrangements are confirmed for each request.
+            </p>
           </div>
           <div className="border-l-2 border-sky-600 pl-6">
             <h2 className="text-2xl font-bold">What to include in your enquiry</h2>

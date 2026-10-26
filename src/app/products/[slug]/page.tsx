@@ -165,8 +165,23 @@ export async function generateMetadata({
     ].filter(Boolean))
   );
 
+  const productIdentity = `${product.brand ?? ""} ${product.model ?? ""} ${product.name}`.toUpperCase();
+  const modelSpecificSeo =
+    productIdentity.includes("VFD002EL21A")
+      ? {
+          title: "Delta VFD002EL21A Variable Frequency Drive | SmartPLC",
+          description: "View the Delta VFD002EL21A drive listing and review the published model details. Confirm ratings, condition, compatibility, availability and delivery destination before ordering.",
+        }
+      : productIdentity.includes("DVP60ES200R")
+        ? {
+            title: "Delta DVP60ES200R PLC Controller | SmartPLC",
+            description: "View the Delta DVP60ES200R PLC listing and review the published model details. Confirm specifications, condition, compatibility, availability and delivery destination before ordering.",
+          }
+        : null;
+
   const title =
     product.seoTitle?.trim() ||
+    modelSpecificSeo?.title ||
     `${product.name}${
       categoryName ? ` | ${categoryName}` : ""
     } | Industrial Automation`;
@@ -174,10 +189,11 @@ export async function generateMetadata({
   const rawDescription =
     product.seoDescription?.trim() ||
     product.shortDescription?.trim() ||
+    modelSpecificSeo?.description ||
     product.description?.trim() ||
     `${product.name}${
       categoryName ? ` from ${categoryName}` : ""
-    } - handcrafted industrial automation equipment from Industrial Automation.`;
+    } - industrial automation equipment. Contact us to confirm specifications and availability.`;
 
   const description =
     rawDescription.length > 160

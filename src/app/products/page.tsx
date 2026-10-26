@@ -250,6 +250,11 @@ export default async function ProductsPage({
                     <h2 className="mt-2 font-serif text-xl font-semibold group-hover:text-[#075985]">
                       {product.name}
                     </h2>
+                    {(product.brand || product.model) && (
+                      <p className="mt-1 text-xs text-slate-600">
+                        {[product.brand && `Brand: ${product.brand}`, product.model && `Model: ${product.model}`].filter(Boolean).join(" · ")}
+                      </p>
+                    )}
 
                     <ProductCardPrice
                       priceUSD={Number(price)}
