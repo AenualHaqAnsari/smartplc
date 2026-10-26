@@ -15,10 +15,10 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   if (!page) return {};
   const canonical = `/saudi-arabia/${slug}`;
   return {
-    title: page.title,
+    title: { absolute: page.title },
     description: page.description,
     alternates: { canonical },
-    openGraph: { type: "website", title: `${page.title} | SmartPLC Solutions`, description: page.description, url: canonical, images: [{ url: "/og-smart-plc.png", width: 1200, height: 630, alt: `${page.h1} | SmartPLC Solutions` }] },
+    openGraph: { type: "website", title: page.title, description: page.description, url: canonical, images: [{ url: "/og-smart-plc.png", width: 1200, height: 630, alt: `${page.h1} | SmartPLC Solutions` }] },
     twitter: { card: "summary_large_image", title: page.title, description: page.description, images: ["/og-smart-plc.png"] },
     robots: { index: true, follow: true },
   };
