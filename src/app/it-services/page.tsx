@@ -45,8 +45,8 @@ const services = [
   {
     name: "AI Agent Development & Automation",
     description: "Custom AI agents for customer support, lead qualification, appointment workflows and business automation.",
-    quoteService: "AI Agent Development and Business Automation",
-    detailHref: "/it-services/ai-agent-development",
+    quoteService: "Custom Business AI Agent",
+    detailHref: "/custom-business-ai-agents",
   },
 ];
 

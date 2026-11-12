@@ -7,12 +7,12 @@ export const metadata: Metadata = {
   title: "AI Agent Development & Business Automation | SmartPLC",
   description:
     "Custom AI agent development for customer support, lead qualification, WhatsApp workflows, appointment handling, document search and business integrations.",
-  alternates: { canonical: "/it-services/ai-agent-development" },
+  alternates: { canonical: "/custom-business-ai-agents" },
   openGraph: {
     title: "AI Agent Development & Business Automation | SmartPLC",
     description:
       "Explore custom AI agents, business workflow automation and integrations with existing software and authorized data sources.",
-    url: "/it-services/ai-agent-development",
+    url: "/custom-business-ai-agents",
     type: "website",
   },
 };
